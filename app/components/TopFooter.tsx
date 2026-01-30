@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { LayoutGrid } from "./LayoutGrid";
 
-export const Header = () => {
+export const TopFooter = () => {
   return (
     <header className="mb-[8.5px]">
-      <LayoutGrid className="items-start md:[&>div]:[grid-row:span_6]">
+      <LayoutGrid className="items-start">
         {/* ロゴ */}
-        <div className="w-[45px] md:col-span-13 flex items-start">
+        <div className="w-[45px] md:col-span-17 md:[grid-row:span_3] flex items-start">
           <Image
             src="/logo-main.svg"
             alt="HRC logo"
@@ -14,6 +14,22 @@ export const Header = () => {
             height={17}
             priority
           />
+        </div>
+        <div className="w-[45px] md:col-span-1 md:[grid-row:span_3] flex items-start">
+
+        <Image
+            src="/icon-switch-on.svg"
+            alt=""
+            width={24}
+            height={24}
+            className="ml-auto"
+            aria-hidden="true"
+          />
+          </div>
+
+        <div className="md:col-span-13 md:[grid-row:span_7] leading-[1.1]">
+          <p>Music Label</p>
+          <p>Based in Tokyo</p>
         </div>
 
         {/* メインナビ */}
