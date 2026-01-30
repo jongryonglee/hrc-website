@@ -24,3 +24,53 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 横スクロールバーを非表示にする */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* ワークグリッドの横スクロールアニメーション */
+.works-scroll-container {
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.works-scroll-content {
+  display: flex;
+  gap: 17px;
+  animation: scroll-horizontal 80s linear infinite;
+  will-change: transform;
+}
+
+@keyframes scroll-horizontal {
+  0% {
+    /* 2つ目のグリッドの開始位置から開始（1つ目のグリッド + gap） */
+    transform: translateX(calc(-1 * (268px * 5 + 17px * 4 + 17px)));
+  }
+  100% {
+    /* 3つ目のグリッドの開始位置まで移動（2つ目のグリッド + gap） */
+    /* これで1つ目のグリッドが完全に見えなくなった時点で、3つ目のグリッドが同じ位置に来る */
+    transform: translateX(calc(-1 * (268px * 5 + 17px * 4 + 17px) * 2));
+  }
+}
+
+/* デスクトップでのアニメーション */
+@media (min-width: 768px) {
+  .works-scroll-content {
+    animation: scroll-horizontal 30s linear infinite;
+  }
+}
+
+/* モバイルではアニメーションを無効化 */
+@media (max-width: 767px) {
+  .works-scroll-content {
+    animation: none;
+  }
+}

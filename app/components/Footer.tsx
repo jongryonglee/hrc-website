@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { LayoutGrid } from "./LayoutGrid";
 
 export const Footer = () => {
@@ -18,7 +19,12 @@ export const Footer = () => {
             <br />
             Tokyo 156-0043
           </p>
-          <button className="inline-flex items-center gap-2 border-b border-white/80 pb-[1px] text-left">
+          <a
+            href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 border-b border-white/80 pb-[1px] text-left hover:opacity-70 transition-opacity"
+          >
             <span>Google Map</span>
             <Image
               src="/icon-map.svg"
@@ -27,7 +33,7 @@ export const Footer = () => {
               height={9}
               className="inline-block"
             />
-          </button>
+          </a>
         </div>
 
         <div className="md:col-span-4 md:items-end">
