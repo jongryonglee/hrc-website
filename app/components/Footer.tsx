@@ -4,14 +4,14 @@ import { LayoutGrid } from "./LayoutGrid";
 
 export const Footer = () => {
   return (
-    <footer className="mt-auto border-t border-white/10 text-[15px]">
+    <footer className="mt-auto border-t border-white/10">
       <LayoutGrid className="items-start">
-        <div className="md:col-span-8 md:[grid-row:span_6] leading-[1.1]">
+        <div className="md:col-span-8 md:[grid-row:span_6]">
           <p>Music Label</p>
           <p>Based in Tokyo</p>
         </div>
 
-        <div className="md:col-span-5 md:text-left leading-[1.1]">
+        <div className="md:col-span-5 md:text-left">
           <p>
             201 Juno Hanegi Koen,6-9-17
             <br />

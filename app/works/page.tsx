@@ -31,13 +31,11 @@ export default function WorkPage() {
           <LayoutGrid>
             {/* (Works): 上から2グリッド分 */}
             <div className="md:col-span-18 md:[grid-row:span_5]">
-              <p className="text-[46px] leading-[1.1]">(Works)</p>
+              <h1>(Works)</h1>
             </div>
             {/* all8...: 2グリッド分を使い、上に半グリッド／下に半グリッドのスペース */}
             <div className="md:col-span-18 md:[grid-row:span_2]">
-              <p className="text-[15px] leading-[1.1]">
-                all8 / music video3 / sound effect12
-              </p>
+              <p>all8 / music video3 / sound effect12</p>
             </div>
           </LayoutGrid>
         </section>

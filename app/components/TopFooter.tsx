@@ -30,14 +30,14 @@ export const TopFooter = () => {
           />
           </div>
 
-        <div className="md:col-span-13 md:[grid-row:span_7] leading-[1.1]">
+        <div className="md:col-span-13 md:[grid-row:span_7]">
           <p>Music Label</p>
           <p>Based in Tokyo</p>
         </div>
 
         {/* メインナビ */}
         <div className="md:col-span-4 flex items-start">
-          <div className="text-left leading-[1.1]">
+          <div className="text-left">
             <Link href="/works" className="hover:opacity-70 transition-opacity">
               <p>Works</p>
             </Link>
@@ -55,7 +55,7 @@ export const TopFooter = () => {
 
         {/* サブナビ */}
         <div className="md:col-span-1 flex items-start">
-          <div className="text-left leading-[1.1]">
+          <div className="text-left">
             <Link href="mailto:contact@hrc.com" className="hover:opacity-70 transition-opacity">
               <p>Contact</p>
             </Link>

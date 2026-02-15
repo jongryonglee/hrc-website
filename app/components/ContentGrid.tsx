@@ -51,7 +51,7 @@ export const ContentGrid = ({
                 />
               )}
             </div>
-            <div className={`space-y-0.5 text-[15px] leading-[1.1] ${rounded ? "mt-1" : ""}`}>
+          <div className={`space-y-0.5 ${rounded ? "mt-1" : ""}`}>
               <p>{item.title}</p>
               {item.subtitle && (
                 <p className="text-[13px]">{item.subtitle}</p>

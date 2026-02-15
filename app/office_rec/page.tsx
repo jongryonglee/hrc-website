@@ -97,7 +97,7 @@ export default function OfficeRecPage() {
           <LayoutGrid>
             {/* (Office Rec): 上から2グリッド分 */}
             <div className="md:col-span-18 md:[grid-row:span_5]">
-              <p className="text-[46px] leading-[1.1]">(Office Rec)</p>
+              <h1>(Office Rec)</h1>
             </div>
           </LayoutGrid>
         </section>
