@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { LayoutGrid } from "./LayoutGrid";
 
 type GraphicDesignGridProps = {
   // TODO: プロップスの型を定義
@@ -38,9 +37,9 @@ export const GraphicDesignGrid = (_props?: GraphicDesignGridProps) => {
 
   return (
     <section className="mb-[0px]">
-          <div className="grid grid-cols-2 gap-x-[17px] md:grid-cols-5 md:gap-x-[17px] md:[grid-auto-rows:17px] h-full">
+          <div className="grid grid-cols-2 gap-x-[17px] md:grid-cols-5 md:gap-x-[17px] [grid-auto-rows:17px] h-full">
             {gridItems.map((item, i) => (
-              <div key={i} className="relative md:[grid-row:span_16] flex items-center justify-center">
+              <div key={i} className="relative [grid-row:span_12] md:[grid-row:span_16] flex items-center justify-center">
               <div className="absolute left-0 top-0 text-white whitespace-pre-line">
                   {item.title}
                 </div>
@@ -49,8 +48,8 @@ export const GraphicDesignGrid = (_props?: GraphicDesignGridProps) => {
                   alt={item.alt}
                   width={135}
                   height={135}
-                  className="object-contain"
-                  sizes="135px"
+                  className="h-[80px] w-[80px] object-contain md:h-[135px] md:w-[135px]"
+                  sizes="(max-width: 767px) 80px, 135px"
                   priority={i === 0}
                 />
               </div>

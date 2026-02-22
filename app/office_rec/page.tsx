@@ -1,7 +1,6 @@
 import { Header } from "../components/Header";
 import { ContentGrid, type GridItem } from "../components/ContentGrid";
 import { Footer } from "../components/Footer";
-import { LayoutGrid } from "../components/LayoutGrid";
 
 const officeRecItems: GridItem[] = [
   {
@@ -88,18 +87,17 @@ const officeRecItems: GridItem[] = [
 
 export default function OfficeRecPage() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      <main className="flex min-h-screen w-full flex-col p-[17px] ">
-        <Header />
+    <>
+      <Header />
 
         {/* Title & summary */}
         <section>
-          <LayoutGrid>
+          <div className="layout-grid">
             {/* (Office Rec): 上から2グリッド分 */}
-            <div className="md:col-span-18 md:[grid-row:span_5]">
+            <div className="grid-full [grid-row:span_6] md:[grid-row:span_5]">
               <h1>(Office Rec)</h1>
             </div>
-          </LayoutGrid>
+          </div>
         </section>
 
         <ContentGrid
@@ -108,12 +106,11 @@ export default function OfficeRecPage() {
           imageClassName="object-cover"
         />
         <section>
-          <LayoutGrid>
-            <div className="md:col-span-18 md:[grid-row:span_10]" />
-          </LayoutGrid>
+          <div className="layout-grid">
+            <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
+          </div>
         </section>
-        <Footer />
-      </main>
-    </div>
+      <Footer />
+    </>
   );
 }

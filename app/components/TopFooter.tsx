@@ -1,13 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LayoutGrid } from "./LayoutGrid";
 
 export const TopFooter = () => {
   return (
-    <header className="mb-[8.5px]">
-      <LayoutGrid className="items-start">
+    <footer>
+      <div className="layout-grid items-start whitespace-nowrap">
         {/* ロゴ */}
-        <div className="w-[45px] md:col-span-17 md:[grid-row:span_3] flex items-start">
+        <div className="col-start-1 w-[45px] md:col-span-17 md:[grid-row:span_3] flex items-start">
           <Link href="/" className="hover:opacity-70 transition-opacity">
             <Image
               src="/logo-main.svg"
@@ -18,7 +17,7 @@ export const TopFooter = () => {
             />
           </Link>
         </div>
-        <div className="w-[45px] md:col-span-1 md:[grid-row:span_3] flex items-start">
+        <div className="col-start-9 w-[45px] md:col-span-1 md:[grid-row:span_3] flex items-start">
 
         <Image
             src="/icon-switch-on.svg"
@@ -30,13 +29,13 @@ export const TopFooter = () => {
           />
           </div>
 
-        <div className="md:col-span-13 md:[grid-row:span_7]">
+        <div className="col-start-1 md:col-span-13 md:[grid-row:span_7]">
           <p>Music Label</p>
           <p>Based in Tokyo</p>
         </div>
 
         {/* メインナビ */}
-        <div className="md:col-span-4 flex items-start">
+        <div className="col-start-5 md:col-span-4 flex items-start md:[grid-row:span_7]">
           <div className="text-left">
             <Link href="/works" className="hover:opacity-70 transition-opacity">
               <p>Works</p>
@@ -54,7 +53,7 @@ export const TopFooter = () => {
         </div>
 
         {/* サブナビ */}
-        <div className="md:col-span-1 flex items-start">
+        <div className="col-start-8 md:col-span-1 flex items-start md:[grid-row:span_7]">
           <div className="text-left">
             <Link href="mailto:contact@hrc.com" className="hover:opacity-70 transition-opacity">
               <p>Contact</p>
@@ -77,8 +76,8 @@ export const TopFooter = () => {
             </a>
           </div>
         </div>
-      </LayoutGrid>
-    </header>
+      </div>
+    </footer>
   );
 };
 

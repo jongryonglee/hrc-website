@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
-import { LayoutGrid } from "../components/LayoutGrid";
 
 const producedWorks = [
   {
@@ -93,117 +92,121 @@ const producedWorks = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-black text-white">
-      <main className="flex min-h-screen w-full flex-col p-[17px]">
-        <Header />
+    <>
+      <Header />
 
         <section>
-          <LayoutGrid className="items-start">
-            <div className="md:col-span-6">
-              <h1>(About)</h1>
-            </div>
-
-            <div className="md:col-span-2 md:col-start-1 md:row-start-5">
-              <p>Music Label</p>
-              <p>Based in Tokyo</p>
-            </div>
-
-            <div className="md:col-span-4 md:col-start-11 md:[grid-row:span_10]">
-              <Image
-                src="/images/about-hero.png"
-                alt=""
-                width={284}
-                height={159}
-                className="h-auto w-full object-cover"
-                priority
-              />
-            </div>
-
-<div className="md:col-span-4 md:col-start-15 md:[grid-row:span_16] space-y-[34px]">
-<div>
-              <p>
-                hrcは世田谷・羽根木を中心に活動する音楽レーベルです。HIP
-                HOPアーティストを中心として、楽曲プロデュースや自社スタジオによるレコーディング業務、所属アーティストのマネジメントなどを行っています。
-              </p>
-            </div>
-
-            <div>
-              <div className="grid grid-cols-4 gap-x-[17px]">
-                <p className="md:col-span-1">Member</p>
-                <p className="md:col-span-3">
-                  takeisme / ASA Wu / minami / <br />
-                  theeluu / Leo Iwamura
-                </p>
+          <div className="flex flex-row items-start gap-x-[17px] mt-[30px] md:mt-[0px]">
+            <div className="flex-4 md:flex-5 space-y-[15px] md:space-y-[34px]">
+              <div>
+                <h1>(About)</h1>
               </div>
 
-              <div className="grid grid-cols-4 gap-x-[17px]">
-                <p className="md:col-span-1">Location</p>
-                <p className="md:col-span-3">
-                  201 Juno Hanegi Koen,
-                  <br />
-                  6-9-17 Matsubara, Setagaya-ku,
-                  <br />
-                  Tokyo 156-0043
-                  <br />
-                  <a
-                    href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 border-b border-white/80 pb-[1px] hover:opacity-70 transition-opacity w-fit"
-                  >
-                    <span>Google Map</span>
-                    <Image src="/icon-map.svg" alt="" width={9} height={9} />
-                  </a>
-                </p>
+              <div className="whitespace-nowrap">
+                <p>Music Label</p>
+                <p>Based in Tokyo</p>
               </div>
+            </div>
 
-              <div className="grid grid-cols-4 gap-x-[17px]">
-                <p className="md:col-span-1">Contact</p>
-                <div className="md:col-span-3 flex flex-col items-start">
-                  <Link
-                    href="mailto:contact@hrc.com"
-                    className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
-                  >
-                    <span>mail</span>
-                    <Image src="/icon-map.svg" alt="" width={9} height={9} />
-                  </Link>
-                  <a
-                    href="https://twitter.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
-                  >
-                    <span>X</span>
-                    <Image src="/icon-map.svg" alt="" width={9} height={9} />
-                  </a>
-                  <a
-                    href="https://www.instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
-                  >
-                    <span>instagram</span>
-                    <Image src="/icon-map.svg" alt="" width={9} height={9} />
-                  </a>
+            <div className="flex-5 md:flex-4">
+              <div className="flex flex-col gap-y-[34px] md:flex-row md:items-start md:gap-x-[17px]">
+                <div className="flex-1 md:h-[159px] md:w-[284px] md:flex-none">
+                  <Image
+                    src="/images/about-hero.png"
+                    alt=""
+                    width={284}
+                    height={159}
+                    className="md:h-full w-full w-object-cover"
+                    priority
+                  />
+                </div>
+
+                <div className="flex-1 space-y-[34px] md:flex-[2]">
+                  <div>
+                    <p>
+                      hrcは世田谷・羽根木を中心に活動する音楽レーベルです。HIP
+                      HOPアーティストを中心として、楽曲プロデュースや自社スタジオによるレコーディング業務、所属アーティストのマネジメントなどを行っています。
+                    </p>
+                  </div>
+
+                  <div className="space-y-[17px]">
+                    <div className="flex items-start gap-x-[17px]">
+                      <p className="w-[80px] shrink-0">Member</p>
+                      <p className="flex-1">
+                        takeisme / ASA Wu/ minami /
+                        theeluu / Leo Iwamura
+                      </p>
+                    </div>
+
+                    <div className="flex items-start gap-x-[17px]">
+                      <p className="w-[80px] shrink-0">Location</p>
+                      <p className="flex-1">
+                        201 Juno Hanegi Koen,
+                        <br className="hidden md:block" />
+                        <span>
+                          6-9-17 Matsubara, <br className="hidden md:block" />
+                          <span className="whitespace-nowrap">Setagaya-ku,</span>
+                        </span>
+                        <br className="hidden md:block" />
+                        Tokyo 156-0043
+                        <br />
+                        <a
+                          href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                        >
+                          <span>Google Map</span>
+                          <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        </a>
+                      </p>
+                    </div>
+
+                    <div className="flex items-start gap-x-[17px]">
+                      <p className="w-[80px] shrink-0">Contact</p>
+                      <div className="flex flex-1 flex-col items-start">
+                        <Link
+                          href="mailto:contact@hrc.com"
+                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                        >
+                          <span>mail</span>
+                          <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        </Link>
+                        <a
+                          href="https://twitter.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                        >
+                          <span>X</span>
+                          <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        </a>
+                        <a
+                          href="https://www.instagram.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                        >
+                          <span>instagram</span>
+                          <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-</div>
-
-
-            <div className="md:col-span-18 md:[grid-row:span_12]" />
-
-          </LayoutGrid>
+          </div>
         </section>
 
         <section className="mt-[68px]">
-          <LayoutGrid>
+          <div className="layout-grid">
             <div className="md:col-span-18 md:col-start-3 md:[grid-row:span_2]">
               <p>(produced works)</p>
             </div>
-          </LayoutGrid>
+          </div>
 
-          <LayoutGrid className="mt-[17px]">
+          <div className="layout-grid mt-[17px]">
             {producedWorks.map((work, index) => (
               <div key={`${work.title}-${work.date}-${index}`} className="contents">
                 <div className="md:col-span-4 md:[grid-row:span_1]">
@@ -224,17 +227,16 @@ export default function AboutPage() {
                 </div>
               </div>
             ))}
-          </LayoutGrid>
+          </div>
         </section>
 
         <section>
-          <LayoutGrid>
+          <div className="layout-grid">
             <div className="md:col-span-18 md:[grid-row:span_11]" />
-          </LayoutGrid>
+          </div>
         </section>
 
-        <Footer />
-      </main>
-    </div>
+      <Footer />
+    </>
   );
 }

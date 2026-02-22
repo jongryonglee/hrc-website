@@ -22,7 +22,7 @@
 html {
   font-family: Helvetica, Arial, sans-serif;
   font-size: 15px;
-  line-height: 17px;
+  line-height: 1.1;
 }
 
 body {
@@ -31,6 +31,19 @@ body {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
+}
+
+.layout-grid {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  grid-template-columns: repeat(18, minmax(0, 1fr));
+  grid-auto-rows: minmax(17px, auto);
+  column-gap: 17px;
+}
+
+.grid-full {
+  grid-column: 1 / -1;
 }
 
 p {
@@ -42,7 +55,29 @@ h1 {
   font-size: 46px;
   line-height: 1.1;
   font-weight: 400;
+  white-space: nowrap;
 }
+
+@media (max-width: 767px) {
+  .layout-grid {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-auto-rows: minmax(15px, auto);
+    column-gap: 10px;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  h1 {
+    font-size: 32px;
+    line-height: 1.1;
+    font-weight: 400;
+  }
+}
+
+.grid-full { grid-column: 1 / -1; }
 
 /* 横スクロールバーを非表示にする */
 .scrollbar-hide {

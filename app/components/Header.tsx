@@ -1,13 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LayoutGrid } from "./LayoutGrid";
 
 export const Header = () => {
   return (
-    <header className="mb-[8.5px]">
-      <LayoutGrid className="items-start md:[&>div]:[grid-row:span_6]">
+    <header >
+      <div className="layout-grid items-start md:[&>div]:[grid-row:span_6]">
         {/* ロゴ */}
-        <div className="w-[45px] md:col-span-13 flex items-start">
+        <div className="w-[45px] flex items-start">
           <Link href="/" className="hover:opacity-70 transition-opacity">
             <Image
               src="/logo-main.svg"
@@ -20,8 +19,8 @@ export const Header = () => {
         </div>
 
         {/* メインナビ */}
-        <div className="md:col-span-4 flex items-start">
-          <div className="text-left">
+        <div className="col-start-5 md:col-start-14 flex items-start">
+          <div className="text-left whitespace-nowrap">
             <Link href="/works" className="hover:opacity-70 transition-opacity">
               <p>Works</p>
             </Link>
@@ -38,7 +37,7 @@ export const Header = () => {
         </div>
 
         {/* サブナビ */}
-        <div className="md:col-span-1 flex items-start">
+        <div className="col-start-8 md:col-start-18 flex items-start">
           <div className="text-left">
             <Link href="mailto:contact@hrc.com" className="hover:opacity-70 transition-opacity">
               <p>Contact</p>
@@ -55,13 +54,13 @@ export const Header = () => {
               href="https://twitter.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-70 transition-opacity"
+              className="hover:opacity-70 transition-opacity whitespace-nowrap"
             >
-              <p className="whitespace-nowrap">Twitter (X)</p>
+              <p>Twitter (X)</p>
             </a>
           </div>
         </div>
-      </LayoutGrid>
+      </div>
     </header>
   );
 };
