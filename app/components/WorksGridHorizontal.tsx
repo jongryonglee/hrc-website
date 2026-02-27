@@ -1,41 +1,56 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Image from "next/image";
 
 const worksImages = [
   "/images/works-1.gif",
-  "/images/works-2.png",
-  "/images/works-3.png",
-  "/images/works-4.png",
+  "/gifs/11.gif",
+  "/gifs/12.gif",
+  "/gifs/13.gif",
   "/images/works-5.png",
-  "/images/works-6.png",
+  "/gifs/14.gif",
   "/images/works-7.png",
-  "/images/works-8.png",
+  "/gifs/15.gif",
+  "/gifs/16.gif",
+  "/gifs/17.gif",
+  "/gifs/18.gif",
+  "/gifs/20.gif"
 ];
 
 const ITEMS_PER_ROW = 5;
 const ROWS = 4;
 const TOTAL_ITEMS = ITEMS_PER_ROW * ROWS; // 20個
+const MOBILE_COLS = 4;
+const MOBILE_ROWS = 4;
+const MOBILE_MAX_ITEMS = MOBILE_COLS * MOBILE_ROWS; // モバイルは3行 x 4列
 const ITEM_WIDTH = 268;
 const GAP = 17;
 const COLUMN_WIDTH = ITEM_WIDTH + GAP; // 1列分の幅（285px）
+const MOBILE_ITEM_WIDTH = 180;
+const MOBILE_GRID_WIDTH = MOBILE_ITEM_WIDTH * MOBILE_COLS + GAP * (MOBILE_COLS - 1);
 
 export const WorksGridHorizontal = () => {
   const renderGrid = (key: string) => (
     <div 
       key={key}
-      className="grid grid-cols-2 gap-[17px] md:grid-cols-5 md:gap-[17px] flex-shrink-0"
-      style={{ width: `${ITEM_WIDTH * ITEMS_PER_ROW + GAP * (ITEMS_PER_ROW - 1)}px` }}
+      className="grid w-[var(--mobile-grid-width)] flex-shrink-0 grid-cols-4 gap-[17px] md:w-[1408px] md:grid-cols-5 md:gap-[17px]"
+      style={{ "--mobile-grid-width": `${MOBILE_GRID_WIDTH}px` } as CSSProperties}
     >
       {Array.from({ length: TOTAL_ITEMS }).map((_, i) => (
-        <div key={i} className="flex w-full flex-col">
+        <div
+          key={i}
+          className={
+            i >= MOBILE_MAX_ITEMS ? "hidden w-full flex-col md:flex" : "flex w-full flex-col"
+          }
+        >
           <div className="relative aspect-[268/204] w-full overflow-hidden">
             <Image
               src={worksImages[i % worksImages.length]}
               alt="Work thumbnail"
               fill
               className="object-cover scale-[1.05]"
-              sizes="268px"
+              sizes="(max-width: 767px) 180px, 268px"
               priority={i < 4 && key === "grid-1"}
               unoptimized={false}
             />

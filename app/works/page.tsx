@@ -4,13 +4,17 @@ import { Footer } from "../components/Footer";
 
 const worksImages = [
   "/images/works-1.gif",
-  "/images/works-2.png",
-  "/images/works-3.png",
-  "/images/works-4.png",
+  "/gifs/11.gif",
+  "/gifs/12.gif",
+  "/gifs/13.gif",
   "/images/works-5.png",
-  "/images/works-6.png",
+  "/gifs/14.gif",
   "/images/works-7.png",
-  "/images/works-8.png",
+  "/gifs/15.gif",
+  "/gifs/16.gif",
+  "/gifs/17.gif",
+  "/gifs/18.gif",
+  "/gifs/20.gif",
 ];
 
 const worksItems: GridItem[] = Array.from({ length: 18 }).map((_, i) => ({
@@ -21,7 +25,7 @@ const worksItems: GridItem[] = Array.from({ length: 18 }).map((_, i) => ({
 
 export default function WorkPage() {
   return (
-    <>
+    <div className="flex min-h-full flex-col">
       <Header />
 
       {/* Title & summary */}
@@ -45,7 +49,9 @@ export default function WorkPage() {
         </div>
       </section>
 
-      <Footer />
-    </>
+      <div className="mt-auto">
+        <Footer />
+      </div>
+    </div>
   );
 }

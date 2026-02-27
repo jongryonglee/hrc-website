@@ -92,7 +92,7 @@ const producedWorks = [
 
 export default function AboutPage() {
   return (
-    <>
+    <div className="flex min-h-full flex-col">
       <Header />
 
         <section>
@@ -144,8 +144,8 @@ export default function AboutPage() {
                         201 Juno Hanegi Koen,
                         <br className="hidden md:block" />
                         <span>
-                          6-9-17 Matsubara, <br className="hidden md:block" />
-                          <span className="whitespace-nowrap">Setagaya-ku,</span>
+                          6-9-17 Matsubara, <br className="md:hidden" />
+                        <span className="whitespace-nowrap">Setagaya-ku,</span>
                         </span>
                         <br className="hidden md:block" />
                         Tokyo 156-0043
@@ -156,7 +156,7 @@ export default function AboutPage() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
                         >
-                          <span>Google Map</span>
+                          <span className="whitespace-nowrap">Google Map</span>
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                       </p>
@@ -201,28 +201,28 @@ export default function AboutPage() {
 
         <section className="mt-[68px]">
           <div className="layout-grid">
-            <div className="md:col-span-18 md:col-start-3 md:[grid-row:span_2]">
+            <div className="col-start-3 md:[grid-row:span_2] whitespace-nowrap">
               <p>(produced works)</p>
             </div>
           </div>
 
-          <div className="layout-grid mt-[17px]">
+          <div className="layout-grid mt-[17px] whitespace-nowrap">
             {producedWorks.map((work, index) => (
               <div key={`${work.title}-${work.date}-${index}`} className="contents">
-                <div className="md:col-span-4 md:[grid-row:span_1]">
+                <div className="col-span-6 md:col-span-4 [grid-row:span_1]">
                   {work.title}
                 </div>
-                <div className="md:col-span-2 md:[grid-row:span_1] text-right">
+                <div className="col-span-3 md:col-span-2 [grid-row:span_1] text-right">
                   {work.label}
                 </div>
-                <div className="md:col-span-3 md:[grid-row:span_1]" />
-                <div className="md:col-span-2 md:[grid-row:span_1]">
+                <div className="hidden md:block md:col-span-3 md:[grid-row:span_1]" />
+                <div className="col-span-3 md:col-span-2 [grid-row:span_1]">
                   {work.artist}
                 </div>
-                <div className="md:col-span-2 md:[grid-row:span_1] text-right">
+                <div className="col-span-3 md:col-span-2 [grid-row:span_1] md:text-right">
                   {work.role}
                 </div>
-                <div className="md:col-span-5 md:[grid-row:span_1] text-right">
+                <div className="col-span-3 md:col-span-5 [grid-row:span_1] text-right">
                   {work.date}
                 </div>
               </div>
@@ -232,11 +232,13 @@ export default function AboutPage() {
 
         <section>
           <div className="layout-grid">
-            <div className="md:col-span-18 md:[grid-row:span_11]" />
+            <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]"/>
           </div>
         </section>
 
-      <Footer />
-    </>
+      <div className="mt-auto">
+        <Footer />
+      </div>
+    </div>
   );
 }

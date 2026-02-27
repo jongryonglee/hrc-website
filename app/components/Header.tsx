@@ -39,7 +39,7 @@ export const Header = () => {
         {/* サブナビ */}
         <div className="col-start-8 md:col-start-18 flex items-start">
           <div className="text-left">
-            <Link href="mailto:contact@hrc.com" className="hover:opacity-70 transition-opacity">
+            <Link href="/contact" className="hover:opacity-70 transition-opacity">
               <p>Contact</p>
             </Link>
             <a

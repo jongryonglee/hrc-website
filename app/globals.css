@@ -5,13 +5,6 @@
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -114,6 +107,16 @@ h1 {
     transform: translateX(calc(-1 * (268px * 5 + 17px * 4 + 17px) * 2));
   }
 }
+@keyframes scroll-horizontal-mobile {
+  0% {
+    /* 2つ目のグリッドの開始位置から開始（1つ目のグリッド + gap） */
+    transform: translateX(calc(-1 * (268px * 4 + 17px * 3 + 17px)));
+  }
+  100% {
+    /* 3つ目のグリッドの開始位置まで移動（2つ目のグリッド + gap） */
+    transform: translateX(calc(-1 * (268px * 4 + 17px * 3 + 17px) * 2));
+  }
+}
 
 /* デスクトップでのアニメーション */
 @media (min-width: 768px) {
@@ -122,9 +125,9 @@ h1 {
   }
 }
 
-/* モバイルではアニメーションを無効化 */
+/* モバイルでは3x4用のアニメーションに切り替え */
 @media (max-width: 767px) {
   .works-scroll-content {
-    animation: none;
+    animation: scroll-horizontal-mobile 80s linear infinite;
   }
 }

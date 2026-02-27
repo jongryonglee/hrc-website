@@ -87,7 +87,7 @@ const officeRecItems: GridItem[] = [
 
 export default function OfficeRecPage() {
   return (
-    <>
+    <div className="flex min-h-full flex-col">
       <Header />
 
         {/* Title & summary */}
@@ -110,7 +110,9 @@ export default function OfficeRecPage() {
             <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
           </div>
         </section>
-      <Footer />
-    </>
+      <div className="mt-auto">
+        <Footer />
+      </div>
+    </div>
   );
 }

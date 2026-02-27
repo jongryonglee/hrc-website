@@ -4,7 +4,7 @@ import { Footer } from "../components/Footer";
 
 export default function GraphicDesignPage() {
   return (
-    <>
+    <div className="flex min-h-full flex-col">
       <Header />
 
         {/* Title & summary */}
@@ -27,7 +27,9 @@ export default function GraphicDesignPage() {
             <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
           </div>
         </section>
-      <Footer />
-    </>
+      <div className="mt-auto">
+        <Footer />
+      </div>
+    </div>
   );
 }

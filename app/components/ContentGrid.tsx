@@ -37,7 +37,7 @@ export const ContentGrid = ({
                 className={imageClassName}
                 sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
                 priority={i < 4}
-                unoptimized={false}
+                unoptimized={true}
               />
               {/* 黒い縁のマスクを上に重ねる（コンテナより少し大きくして画像のはみ出しを隠す） */}
               {showMask && (
