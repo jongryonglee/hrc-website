@@ -4,10 +4,10 @@ import { TopFooter } from "./components/TopFooter";
 export default function Home() {
   return (
     <>
-      <div className="h-full w-full overflow-hidden">
+      <div className="min-h-full w-full overflow-hidden md:block">
         {/* Works Grid - 横スクロール */}
         <WorksGridHorizontal />
-        <TopFooter />
+          <TopFooter />
       </div>
     </>
   );

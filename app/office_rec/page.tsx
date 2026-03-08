@@ -87,7 +87,7 @@ const officeRecItems: GridItem[] = [
 
 export default function OfficeRecPage() {
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col flex-1">
       <Header />
 
         {/* Title & summary */}

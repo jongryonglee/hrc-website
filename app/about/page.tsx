@@ -92,11 +92,11 @@ const producedWorks = [
 
 export default function AboutPage() {
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col flex-1">
       <Header />
 
-        <section>
-          <div className="flex flex-row items-start gap-x-[17px] mt-[30px] md:mt-[0px]">
+        <section className="text-[14px] leading-[1.1] md:text-[15px]">
+          <div className="flex flex-row items-start gap-x-[10px] md:gap-x-[17px] mt-[30px] md:mt-[0px]">
             <div className="flex-4 md:flex-5 space-y-[15px] md:space-y-[34px]">
               <div>
                 <h1>(About)</h1>
@@ -108,8 +108,8 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <div className="flex-5 md:flex-4">
-              <div className="flex flex-col gap-y-[34px] md:flex-row md:items-start md:gap-x-[17px]">
+              <div className="flex-5 md:flex-4">
+                <div className="flex flex-col gap-y-[30px] md:gap-y-[34px] md:flex-row md:items-start md:gap-x-[17px]">
                 <div className="flex-1 md:h-[159px] md:w-[284px] md:flex-none">
                   <Image
                     src="/images/about-hero.png"
@@ -121,7 +121,7 @@ export default function AboutPage() {
                   />
                 </div>
 
-                <div className="flex-1 space-y-[34px] md:flex-[2]">
+                <div className="flex-1 space-y-[30px] md:space-y-[34px] md:flex-[2]">
                   <div>
                     <p>
                       hrcは世田谷・羽根木を中心に活動する音楽レーベルです。HIP
@@ -129,8 +129,8 @@ export default function AboutPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-[17px]">
-                    <div className="flex items-start gap-x-[17px]">
+                  <div className="space-y-[15px] md:space-y-[17px]">
+                    <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                       <p className="w-[80px] shrink-0">Member</p>
                       <p className="flex-1">
                         takeisme / ASA Wu/ minami /
@@ -138,7 +138,7 @@ export default function AboutPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-start gap-x-[17px]">
+                    <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                       <p className="w-[80px] shrink-0">Location</p>
                       <p className="flex-1">
                         201 Juno Hanegi Koen,
@@ -162,7 +162,7 @@ export default function AboutPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-start gap-x-[17px]">
+                    <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                       <p className="w-[80px] shrink-0">Contact</p>
                       <div className="flex flex-1 flex-col items-start">
                         <Link
@@ -199,14 +199,14 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="mt-[68px]">
+        <section className="mt-[60px] md:mt-[68px]">
           <div className="layout-grid">
             <div className="col-start-3 md:[grid-row:span_2] whitespace-nowrap">
               <p>(produced works)</p>
             </div>
           </div>
 
-          <div className="layout-grid mt-[17px] whitespace-nowrap">
+          <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
             {producedWorks.map((work, index) => (
               <div key={`${work.title}-${work.date}-${index}`} className="contents">
                 <div className="col-span-6 md:col-span-4 [grid-row:span_1]">

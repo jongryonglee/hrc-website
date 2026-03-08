@@ -1,9 +1,10 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import Link from "next/link";
+import Image from "next/image";
 
 type ContactFormState = {
   name: string;
@@ -21,277 +22,328 @@ const initialState: ContactFormState = {
   company: "",
   email: "",
   phone: "",
-  subject: "",
+  subject: "performance",
   message: "",
 };
-
-const subjectOptions = [
-  { value: "", label: "選択してください" },
-  { value: "project", label: "制作依頼" },
-  { value: "consulting", label: "ご相談" },
-  { value: "press", label: "取材・メディア" },
-  { value: "other", label: "その他" },
-];
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ContactPage() {
-  const [form, setForm] = useState<ContactFormState>(initialState);
+  const [formState, setFormState] = useState<ContactFormState>(initialState);
   const [errors, setErrors] = useState<ContactFormErrors>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
-
-  const updateField = (key: keyof ContactFormState, value: string) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: undefined }));
-    }
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = event.target;
+    setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
-  const validate = (values: ContactFormState) => {
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const nextErrors: ContactFormErrors = {};
 
-    if (!values.name.trim()) {
-      nextErrors.name = "お名前を入力してください。";
+    if (!formState.subject) {
+      nextErrors.subject = "required";
+    }
+    if (!formState.name.trim()) {
+      nextErrors.name = "required";
+    }
+    if (!formState.email.trim()) {
+      nextErrors.email = "required";
+    } else if (!emailPattern.test(formState.email)) {
+      nextErrors.email = "format";
+    }
+    if (!formState.message.trim()) {
+      nextErrors.message = "required";
     }
 
-    if (!values.email.trim()) {
-      nextErrors.email = "メールアドレスを入力してください。";
-    } else if (!emailPattern.test(values.email)) {
-      nextErrors.email = "メールアドレスの形式が正しくありません。";
-    }
-
-    if (!values.subject) {
-      nextErrors.subject = "お問い合わせ内容を選択してください。";
-    }
-
-    if (!values.message.trim()) {
-      nextErrors.message = "お問い合わせ内容を入力してください。";
-    }
-
-    return nextErrors;
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const nextErrors = validate(form);
     setErrors(nextErrors);
-
     if (Object.keys(nextErrors).length > 0) {
       return;
     }
-
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setIsSubmitting(false);
     setIsSubmitted(true);
   };
 
-  const handleReset = () => {
-    setForm(initialState);
-    setErrors({});
-    setIsSubmitted(false);
-  };
+  const getInputClass = (hasError: boolean) =>
+    [
+      "w-full bg-transparent border-b pb-[1px] focus:outline-none",
+      hasError ? "border-red-500 focus:border-red-500" : "border-white/70 focus:border-white",
+    ].join(" ");
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col flex-1">
       <Header />
 
       <section>
         <div className="layout-grid">
-          <div className="grid-full [grid-row:span_5]">
+          <div className="grid-full [grid-row:span_4] md:[grid-row:span_5]">
             <h1>(Contact)</h1>
           </div>
-          <div className="flex flex-row items-start gap-x-[17px] mt-[30px] md:mt-[0px]">
-          <div className="flex-4 md:flex-5 space-y-[15px] md:space-y-[34px]">出演の依頼やコラボの相談等は、<br  />
-          こちらのフォームからご連絡ください。</div>
-          </div>
-        </div>
-      </section>
 
-      <section className="mt-[34px]">
-        <div className="layout-grid">
-          <div className="col-span-9 md:col-span-12 md:col-start-4">
-            {isSubmitted ? (
-              <div className="space-y-[17px] md:space-y-[24px]">
-                <div className="space-y-[8px]">
-                  <p>送信が完了しました。</p>
-                  <p>お問い合わせありがとうございます。内容を確認のうえご連絡いたします。</p>
+          {isSubmitted ? (
+            <div className="grid-full mt-[0px] md:mt-[0px]">
+              <p>Thank you!</p>
+              <p>内容を確認のうえ、追って連絡させていただきます。</p>
+              <Link href="/" className="flex w-fit items-center hover:opacity-70 transition-opacity mt-[15px] md:mt-[px]">
+                <Image src="/arrow-right.svg" alt="" width={17} height={17} />
+                <span>Back to top</span>
+              </Link>
+            </div>
+
+          ) : (
+            <div className="grid-full mt-[0px] whitespace-nowrap">
+              <div className="flex flex-col md:flex-row items-start gap-x-[10px] md:gap-x-[17px]">
+                <div className="flex-4 md:flex-7 space-y-[15px] mb-[30px] md:mb-[0px] md:space-y-[34px]">
+                  <p>出演の依頼やコラボの相談等は、<br />こちらのフォームからご連絡ください。</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="inline-flex items-center gap-2 hover:opacity-70 transition-opacity"
+                <form
+                  className="flex-1 md:flex-11 text-[14px] leading-[1.1] md:text-[15px] space-y-[15px] md:space-y-[17px] ml-[calc((100%-80px)/9)] md:ml-0"
+                  onSubmit={handleSubmit}
+                  noValidate
                 >
-                  <span>フォームに戻る</span>
-                  <Image src="/arrow-right.svg" alt="" width={11} height={11} />
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-[20px] md:space-y-[24px]">
-                {hasErrors && (
-                  <p className="text-[12px] text-red-600">
-                    入力内容をご確認ください。
-                  </p>
-                )}
+                <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
+                  <label className="w-[120px] shrink-0 text-right">
+                    お問い合わせ種別
+                    <span className={errors.subject ? "text-red-500" : "text-white"}>*</span>
+                  </label>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap gap-x-[10px] md:gap-x-[17px] whitespace-nowrap">
+                      <label className="flex w-full md:w-auto items-center gap-x-[6px]">
+                        <input
+                          type="radio"
+                          name="subject"
+                          value="performance"
+                          className="peer sr-only"
+                          checked={formState.subject === "performance"}
+                          onChange={handleChange}
+                        />
+                        <img
+                          src="/icon/empty.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="inline-block h-[17px] w-[17px] peer-checked:hidden"
+                        />
+                        <img
+                          src="/icon/fulled.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="hidden h-[17px] w-[17px] peer-checked:inline-block"
+                        />
+                        出演・音源使用のご依頼
+                      </label>
+                      <label className="flex w-full md:w-auto items-center gap-x-[6px]">
+                        <input
+                          type="radio"
+                          name="subject"
+                          value="collab"
+                          className="peer sr-only"
+                          checked={formState.subject === "collab"}
+                          onChange={handleChange}
+                        />
+                        <img
+                          src="/icon/empty.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="inline-block h-[17px] w-[17px] peer-checked:hidden"
+                        />
+                        <img
+                          src="/icon/fulled.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="hidden h-[17px] w-[17px] peer-checked:inline-block"
+                        />
+                        楽曲制作・コラボのご相談
+                      </label>
+                      <label className="flex w-full md:w-auto items-center gap-x-[6px]">
+                        <input
+                          type="radio"
+                          name="subject"
+                          value="press"
+                          className="peer sr-only"
+                          checked={formState.subject === "press"}
+                          onChange={handleChange}
+                        />
+                        <img
+                          src="/icon/empty.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="inline-block h-[17px] w-[17px] peer-checked:hidden"
+                        />
+                        <img
+                          src="/icon/fulled.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="hidden h-[17px] w-[17px] peer-checked:inline-block"
+                        />
+                        取材・メディア関連
+                      </label>
+                      <label className="flex w-full md:w-auto items-center gap-x-[6px]">
+                        <input
+                          type="radio"
+                          name="subject"
+                          value="business"
+                          className="peer sr-only"
+                          checked={formState.subject === "business"}
+                          onChange={handleChange}
+                        />
+                        <img
+                          src="/icon/empty.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="inline-block h-[17px] w-[17px] peer-checked:hidden"
+                        />
+                        <img
+                          src="/icon/fulled.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="hidden h-[17px] w-[17px] peer-checked:inline-block"
+                        />
+                        契約・ビジネス関連
+                      </label>
+                      <label className="flex w-full md:w-auto items-center gap-x-[6px]">
+                        <input
+                          type="radio"
+                          name="subject"
+                          value="event"
+                          className="peer sr-only"
+                          checked={formState.subject === "event"}
+                          onChange={handleChange}
+                        />
+                        <img
+                          src="/icon/empty.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="inline-block h-[17px] w-[17px] peer-checked:hidden"
+                        />
+                        <img
+                          src="/icon/fulled.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="hidden h-[17px] w-[17px] peer-checked:inline-block"
+                        />
+                        イベント・ライブ関連
+                      </label>
+                      <label className="flex w-full md:w-auto items-center gap-x-[6px]">
+                        <input
+                          type="radio"
+                          name="subject"
+                          value="other"
+                          className="peer sr-only"
+                          checked={formState.subject === "other"}
+                          onChange={handleChange}
+                        />
+                        <img
+                          src="/icon/empty.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="inline-block h-[17px] w-[17px] peer-checked:hidden"
+                        />
+                        <img
+                          src="/icon/fulled.svg"
+                          alt=""
+                          aria-hidden="true"
+                          className="hidden h-[17px] w-[17px] peer-checked:inline-block"
+                        />
+                        その他
+                      </label>
+                    </div>
+                  </div>
+                </div>
 
-                <div className="flex items-start gap-x-[17px]">
-                  <label htmlFor="contact-name" className="w-[90px] shrink-0">
-                    Name
+                <div className="flex items-center gap-x-[10px] md:gap-x-[17px]">
+                  <label htmlFor="contact-name" className="w-[120px] shrink-0 text-right">
+                    お名前
+                    <span className={errors.name ? "text-red-500" : "text-white"}>*</span>
                   </label>
                   <div className="flex-1">
                     <input
                       id="contact-name"
                       name="name"
-                      value={form.name}
-                      onChange={(event) => updateField("name", event.target.value)}
-                      className={`w-full border-b bg-transparent outline-none ${
-                        errors.name ? "border-red-500 text-red-600" : "border-current"
-                      }`}
-                      aria-invalid={Boolean(errors.name)}
-                      aria-describedby={errors.name ? "contact-name-error" : undefined}
-                      autoComplete="name"
+                      required
+                      value={formState.name}
+                      onChange={handleChange}
+                      className={getInputClass(Boolean(errors.name))}
                     />
-                    {errors.name && (
-                      <p id="contact-name-error" className="mt-[6px] text-[12px] text-red-600">
-                        {errors.name}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                <div className="flex items-start gap-x-[17px]">
-                  <label htmlFor="contact-company" className="w-[90px] shrink-0">
-                    Company
+                <div className="flex items-center gap-x-[10px] md:gap-x-[17px]">
+                  <label htmlFor="contact-company" className="w-[120px] shrink-0 text-right">
+                    会社名/団体
                   </label>
                   <div className="flex-1">
                     <input
                       id="contact-company"
                       name="company"
-                      value={form.company}
-                      onChange={(event) => updateField("company", event.target.value)}
-                      className="w-full border-b border-current bg-transparent outline-none"
-                      autoComplete="organization"
+                      value={formState.company}
+                      onChange={handleChange}
+                      className={getInputClass(Boolean(errors.company))}
                     />
                   </div>
                 </div>
 
-                <div className="flex items-start gap-x-[17px]">
-                  <label htmlFor="contact-email" className="w-[90px] shrink-0">
-                    Email
+                <div className="flex items-center gap-x-[10px] md:gap-x-[17px]">
+                  <label htmlFor="contact-email" className="w-[120px] shrink-0 text-right">
+                    メールアドレス
+                    <span className={errors.email ? "text-red-500" : "text-white"}>*</span>
                   </label>
                   <div className="flex-1">
                     <input
                       id="contact-email"
                       name="email"
                       type="email"
-                      value={form.email}
-                      onChange={(event) => updateField("email", event.target.value)}
-                      className={`w-full border-b bg-transparent outline-none ${
-                        errors.email ? "border-red-500 text-red-600" : "border-current"
-                      }`}
-                      aria-invalid={Boolean(errors.email)}
-                      aria-describedby={errors.email ? "contact-email-error" : undefined}
-                      autoComplete="email"
-                    />
-                    {errors.email && (
-                      <p id="contact-email-error" className="mt-[6px] text-[12px] text-red-600">
-                        {errors.email}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-x-[17px]">
-                  <label htmlFor="contact-phone" className="w-[90px] shrink-0">
-                    Phone
-                  </label>
-                  <div className="flex-1">
-                    <input
-                      id="contact-phone"
-                      name="phone"
-                      value={form.phone}
-                      onChange={(event) => updateField("phone", event.target.value)}
-                      className="w-full border-b border-current bg-transparent outline-none"
-                      autoComplete="tel"
+                      required
+                      value={formState.email}
+                      onChange={handleChange}
+                      className={getInputClass(Boolean(errors.email))}
                     />
                   </div>
                 </div>
 
-                <div className="flex items-start gap-x-[17px]">
-                  <label htmlFor="contact-subject" className="w-[90px] shrink-0">
-                    Subject
-                  </label>
-                  <div className="flex-1">
-                    <div className="relative">
-                      <select
-                        id="contact-subject"
-                        name="subject"
-                        value={form.subject}
-                        onChange={(event) => updateField("subject", event.target.value)}
-                        className={`w-full border-b bg-transparent outline-none ${
-                          errors.subject ? "border-red-500 text-red-600" : "border-current"
-                        }`}
-                        aria-invalid={Boolean(errors.subject)}
-                        aria-describedby={errors.subject ? "contact-subject-error" : undefined}
-                      >
-                        {subjectOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {errors.subject && (
-                      <p id="contact-subject-error" className="mt-[6px] text-[12px] text-red-600">
-                        {errors.subject}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-x-[17px]">
-                  <label htmlFor="contact-message" className="w-[90px] shrink-0">
-                    Message
+                <div className="flex items-start gap-x-[10px] md:gap-x-[17px] mb-[30px] md:mb-[34px]">
+                  <label htmlFor="contact-message" className="w-[120px] shrink-0 text-right">
+                    お問い合わせ内容
+                    <span className={errors.message ? "text-red-500" : "text-white"}>*</span>
                   </label>
                   <div className="flex-1">
                     <textarea
                       id="contact-message"
                       name="message"
-                      value={form.message}
-                      onChange={(event) => updateField("message", event.target.value)}
-                      rows={5}
-                      className={`w-full border-b bg-transparent outline-none ${
-                        errors.message ? "border-red-500 text-red-600" : "border-current"
-                      }`}
-                      aria-invalid={Boolean(errors.message)}
-                      aria-describedby={errors.message ? "contact-message-error" : undefined}
+                      required
+                      rows={3}
+                      value={formState.message}
+                      onChange={handleChange}
+                      className={[
+                        "w-full min-h-[180px] md:min-h-[255px] bg-transparent border-b pb-[1px] focus:outline-none resize-none",
+                        errors.message
+                          ? "border-red-500 focus:border-red-500"
+                          : "border-white/70 focus:border-white",
+                      ].join(" ")}
                     />
-                    {errors.message && (
-                      <p id="contact-message-error" className="mt-[6px] text-[12px] text-red-600">
-                        {errors.message}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 hover:opacity-70 transition-opacity disabled:opacity-40"
-                  >
-                    <span>{isSubmitting ? "送信中..." : "送信"}</span>
-                    <Image src="/arrow-right.svg" alt="" width={11} height={11} />
-                  </button>
+                <div className="flex items-center gap-x-[10px] md:gap-x-[17px]">
+                  <div className="w-[120px] shrink-0" />
+                  <div className="flex-1 pb-[1px]">
+                    <button
+                      type="submit"
+                      className="text-white hover:text-white transition-colors"
+                    >
+                      <p>→送信する</p>
+                    </button>
+                  </div>
                 </div>
-              </form>
-            )}
-          </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </section>
+
+    
 
       <section className="mt-[68px]">
         <div className="layout-grid">

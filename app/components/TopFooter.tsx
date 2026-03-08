@@ -55,7 +55,7 @@ export const TopFooter = () => {
         {/* サブナビ */}
         <div className="col-start-8 md:col-span-1 flex items-start md:[grid-row:span_7]">
           <div className="text-left">
-            <Link href="mailto:contact@hrc.com" className="hover:opacity-70 transition-opacity">
+            <Link href="/contact" className="hover:opacity-70 transition-opacity">
               <p>Contact</p>
             </Link>
             <a
