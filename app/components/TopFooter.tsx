@@ -6,25 +6,26 @@ export const TopFooter = () => {
     <footer>
       <div className="layout-grid items-start whitespace-nowrap">
         {/* ロゴ */}
-        <div className="col-start-1 w-[45px] md:col-span-17 md:[grid-row:span_3] flex items-start">
+        <div className="col-start-1 flex h-[17px] w-[46px] items-start md:col-span-17 md:[grid-row:span_3]">
           <Link href="/" className="hover:opacity-70 transition-opacity">
             <Image
               src="/logo-main.svg"
               alt="HRC logo"
               width={46}
               height={17}
+              className="h-full w-full object-contain"
               priority
             />
           </Link>
         </div>
-        <div className="col-start-9 w-[45px] md:col-span-1 md:[grid-row:span_3] flex items-start">
+        <div className="col-start-9 flex h-[24px] w-[24px] items-start justify-self-end md:col-span-1 md:[grid-row:span_3]">
 
         <Image
             src="/icon-switch-on.svg"
             alt=""
             width={24}
             height={24}
-            className="ml-auto"
+            className="ml-auto h-full w-full object-contain"
             aria-hidden="true"
           />
           </div>

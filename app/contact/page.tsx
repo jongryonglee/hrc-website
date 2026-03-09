@@ -86,7 +86,7 @@ export default function ContactPage() {
             <div className="grid-full mt-[0px] md:mt-[0px]">
               <p>Thank you!</p>
               <p>内容を確認のうえ、追って連絡させていただきます。</p>
-              <Link href="/" className="flex w-fit items-center hover:opacity-70 transition-opacity mt-[15px] md:mt-[px]">
+              <Link href="/" className="flex w-fit items-center hover:opacity-70 transition-opacity mt-[15px] md:mt-[15px]">
                 <Image src="/arrow-right.svg" alt="" width={17} height={17} />
                 <span>Back to top</span>
               </Link>

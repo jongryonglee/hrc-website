@@ -6,7 +6,7 @@ export const Header = () => {
     <header >
       <div className="layout-grid items-start md:[&>div]:[grid-row:span_6]">
         {/* ロゴ */}
-        <div className="w-[45px] flex items-start">
+        <div className="flex h-[17px] w-[46px] items-start">
           <Link href="/" className="hover:opacity-70 transition-opacity">
             <Image
               src="/logo-main.svg"
@@ -14,6 +14,7 @@ export const Header = () => {
               width={46}
               height={17}
               priority
+              className="h-full w-full object-contain"
             />
           </Link>
         </div>

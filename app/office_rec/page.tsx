@@ -83,7 +83,10 @@ const officeRecItems: GridItem[] = [
     image: "/images/office-rec-20.png",
     title: "Vol.17 Part 2 / Ginpari (Prod.IKE)",
   },
-];
+].map((item, index) => ({
+  ...item,
+  _key: `office-rec-${index}`,
+}));
 
 export default function OfficeRecPage() {
   return (
