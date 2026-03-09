@@ -44,7 +44,7 @@ export const Header = () => {
               <p>Contact</p>
             </Link>
             <a
-              href="https://www.instagram.com"
+              href="https://www.instagram.com/hicard.record?igsh="
               target="_blank"
               rel="noopener noreferrer"
               className="hover:opacity-70 transition-opacity"
@@ -52,7 +52,7 @@ export const Header = () => {
               <p>Instagram</p>
             </a>
             <a
-              href="https://twitter.com"
+              href="https://x.com/hrc_hicard?s=21"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:opacity-70 transition-opacity whitespace-nowrap"

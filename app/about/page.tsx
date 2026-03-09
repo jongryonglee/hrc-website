@@ -2,95 +2,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import { client } from "@/sanity/lib/client";
+import { PRODUCED_WORK_ITEMS_QUERY } from "@/sanity/lib/queries";
 
-const producedWorks = [
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-];
+type ProducedWorkItem = {
+  _id: string;
+  title: string;
+  label: string;
+  artist: string;
+  role: string;
+  date: string;
+};
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const hasProject = Boolean(client.config().projectId);
+  const producedWorks = hasProject
+    ? ((await client.fetch(PRODUCED_WORK_ITEMS_QUERY)) as ProducedWorkItem[])
+    : [
+        {
+          _id: "produced-work-placeholder-1",
+          title: "Unpaused / Vela",
+          label: "ABCDEF Label",
+          artist: "theeluu",
+          role: "Mix, Mastering",
+          date: "2025/10/17",
+        },
+      ];
+
   return (
     <div className="flex min-h-full flex-col flex-1">
       <Header />
@@ -207,8 +145,8 @@ export default function AboutPage() {
           </div>
 
           <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
-            {producedWorks.map((work, index) => (
-              <div key={`${work.title}-${work.date}-${index}`} className="contents">
+            {producedWorks.map((work) => (
+              <div key={work._id} className="contents">
                 <div className="col-span-6 md:col-span-4 [grid-row:span_1]">
                   {work.title}
                 </div>
