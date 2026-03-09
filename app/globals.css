@@ -82,6 +82,24 @@ h1 {
   display: none; /* Chrome, Safari and Opera */
 }
 
+/* link arrow hover animation */
+.link_co {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.link_co-icon {
+  transition: transform 50ms;
+  will-change: transform;
+}
+
+@media (any-hover: hover) {
+  .link_co:hover .link_co-icon {
+    transform: translate(0.1em, -0.1em);
+  }
+}
+
 /* ワークグリッドの横スクロールアニメーション */
 .works-scroll-container {
   width: 100%;

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ScrambleText } from "./ScrambleText";
 
 export const Footer = () => {
   return (
@@ -21,9 +22,9 @@ export const Footer = () => {
             href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 whitespace-nowrap text-left hover:opacity-70 transition-opacity"
+            className="inline-flex items-center gap-2 whitespace-nowrap text-left"
           >
-            <span>Google Map</span>
+            <ScrambleText text="Google Map" mode="lap" speedMs={40} durationMs={400} />
             <Image
               src="/icon-map.svg"
               alt=""
@@ -35,10 +36,26 @@ export const Footer = () => {
         </div>
 
         <div className="col-start-5 [grid-row:span_3] md:col-span-4 md:items-end">
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <span>Managed by hicard</span>
-            <Image src="/icon-hicard.svg" alt="" width={9} height={9} />
-          </div>
+          <a
+            href="https://hicard.studio/ja"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="link_co flex items-center gap-2 whitespace-nowrap"
+          >
+            <ScrambleText
+              text="Managed by hicard"
+              mode="lap"
+              speedMs={40}
+              durationMs={400}
+            />
+            <Image
+              src="/icon-hicard.svg"
+              alt=""
+              width={9}
+              height={9}
+              className="link_co-icon"
+            />
+          </a>
         </div>
 
         <div className="col-start-5 [grid-row:span_2] md:col-span-1 md:items-end">

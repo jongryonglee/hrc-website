@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ScrambleText } from "./ScrambleText";
 
 export const TopFooter = () => {
   return (
@@ -7,7 +8,7 @@ export const TopFooter = () => {
       <div className="layout-grid items-start whitespace-nowrap">
         {/* ロゴ */}
         <div className="col-start-1 flex h-[17px] w-[46px] items-start md:col-span-17 md:[grid-row:span_3]">
-          <Link href="/" className="hover:opacity-70 transition-opacity">
+          <Link href="/">
             <Image
               src="/logo-main.svg"
               alt="HRC logo"
@@ -38,17 +39,46 @@ export const TopFooter = () => {
         {/* メインナビ */}
         <div className="col-start-5 md:col-span-4 flex items-start md:[grid-row:span_7]">
           <div className="text-left">
-            <Link href="/works" className="hover:opacity-70 transition-opacity">
-              <p>Works</p>
+            <Link href="/works">
+              <p>
+                <ScrambleText text="Works" mode="lap" speedMs={40} durationMs={400} />
+              </p>
             </Link>
-            <Link href="/office_rec" className="hover:opacity-70 transition-opacity">
-              <p>Office Rec</p>
+            <Link href="/office_rec">
+              <p>
+                <ScrambleText
+                  text="Office Rec"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+              </p>
             </Link>
-            <Link href="/graphic_design" className="hover:opacity-70 transition-opacity">
-              <p>Graphic Design</p>
+            <Link href="/graphic_design">
+              <p>
+                <ScrambleText
+                  text="Graphic Design"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+              </p>
             </Link>
-            <Link href="/about" className="hover:opacity-70 transition-opacity">
-              <p>About Us</p>
+            <Link href="/about">
+              <p className="inline-flex items-center gap-1">
+                <ScrambleText
+                  text="About"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+                <ScrambleText
+                  text="Us"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+              </p>
             </Link>
           </div>
         </div>
@@ -56,24 +86,43 @@ export const TopFooter = () => {
         {/* サブナビ */}
         <div className="col-start-8 md:col-span-1 flex items-start md:[grid-row:span_7]">
           <div className="text-left">
-            <Link href="/contact" className="hover:opacity-70 transition-opacity">
-              <p>Contact</p>
+            <Link href="/contact">
+              <p>
+                <ScrambleText
+                  text="Contact"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+              </p>
             </Link>
             <a
               href="https://www.instagram.com/hicard.record?igsh="
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-70 transition-opacity"
             >
-              <p>Instagram</p>
+              <p>
+                <ScrambleText
+                  text="Instagram"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+              </p>
             </a>
             <a
               href="https://x.com/hrc_hicard?s=21"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:opacity-70 transition-opacity"
             >
-              <p className="whitespace-nowrap">Twitter (X)</p>
+              <p className="whitespace-nowrap">
+                <ScrambleText
+                  text="Twitter (X)"
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                />
+              </p>
             </a>
           </div>
         </div>

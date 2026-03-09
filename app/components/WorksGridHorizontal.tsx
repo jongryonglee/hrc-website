@@ -27,7 +27,7 @@ const MOBILE_MAX_ITEMS = MOBILE_COLS * MOBILE_ROWS; // モバイルは3行 x 4�
 const ITEM_WIDTH = 268;
 const GAP = 17;
 const COLUMN_WIDTH = ITEM_WIDTH + GAP; // 1列分の幅（285px）
-const MOBILE_ITEM_WIDTH = 180;
+const MOBILE_ITEM_WIDTH = 268;
 const MOBILE_GRID_WIDTH = MOBILE_ITEM_WIDTH * MOBILE_COLS + GAP * (MOBILE_COLS - 1);
 
 export const WorksGridHorizontal = () => {
@@ -50,7 +50,7 @@ export const WorksGridHorizontal = () => {
               alt="Work thumbnail"
               fill
               className="object-cover scale-[1.05]"
-              sizes="(max-width: 767px) 180px, 268px"
+              sizes="(max-width: 767px) 268px, 268px"
               priority={i < 4 && key === "grid-1"}
               unoptimized={false}
             />
@@ -73,8 +73,8 @@ export const WorksGridHorizontal = () => {
 
   return (
     <section className="flex-1 mb-[17px] overflow-y-auto overflow-x-hidden flex flex-col">
-      <div className="works-scroll-container flex-1 flex flex-col justify-end">
-        <div className="works-scroll-content">
+      <div className="works-scroll-container flex-1 flex flex-col justify-end overflow-hidden">
+        <div className="works-scroll-content -mt-[140px] md:-mt-[140px]">
           {/* 無限ループ用に3つのグリッドを並べる */}
           {renderGrid("grid-1")}
           {renderGrid("grid-2")}

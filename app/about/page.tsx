@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import { ScrambleText } from "../components/ScrambleText";
 import { client } from "@/sanity/lib/client";
 import { PRODUCED_WORK_ITEMS_QUERY } from "@/sanity/lib/queries";
 
@@ -92,9 +93,16 @@ export default async function AboutPage() {
                           href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                          className="inline-flex items-center gap-1 w-fit"
                         >
-                          <span className="whitespace-nowrap">Google Map</span>
+                          <span className="whitespace-nowrap">
+                            <ScrambleText
+                              text="Google Map"
+                              mode="lap"
+                              speedMs={40}
+                              durationMs={400}
+                            />
+                          </span>
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                       </p>
@@ -103,29 +111,36 @@ export default async function AboutPage() {
                     <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                       <p className="w-[80px] shrink-0">Contact</p>
                       <div className="flex flex-1 flex-col items-start">
-                        <Link
-                          href="mailto:contact@hrc.com"
-                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
-                        >
-                          <span>mail</span>
+                        <Link href="mailto:contact@hrc.com" className="flex items-center gap-1 w-fit">
+                          <ScrambleText
+                            text="mail"
+                            mode="lap"
+                            speedMs={40}
+                            durationMs={400}
+                          />
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </Link>
                         <a
                           href="https://twitter.com"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                          className="flex items-center gap-1 w-fit"
                         >
-                          <span>X</span>
+                          <ScrambleText text="X" mode="lap" speedMs={40} durationMs={400} />
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                         <a
                           href="https://www.instagram.com"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                          className="flex items-center gap-1 w-fit"
                         >
-                          <span>instagram</span>
+                          <ScrambleText
+                            text="instagram"
+                            mode="lap"
+                            speedMs={40}
+                            durationMs={400}
+                          />
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                       </div>
