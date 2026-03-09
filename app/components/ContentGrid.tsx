@@ -1,6 +1,7 @@
 import Image from "next/image";
 
 export type GridItem = {
+  _key: string;
   image: string;
   title: string;
   subtitle?: string;
@@ -24,7 +25,7 @@ export const ContentGrid = ({
       {/* ここはGridのデザインの範囲外 */}
       <div className="grid grid-cols-2 gap-[17px] md:grid-cols-5 md:gap-[17px]">
         {items.map((item, i) => (
-          <div key={i} className="flex w-full flex-col">
+          <div key={item._key} className="flex w-full flex-col">
             <div
               className={`relative aspect-[268/204] w-full overflow-hidden ${
                 rounded ? "rounded-[12px]" : ""
@@ -51,7 +52,7 @@ export const ContentGrid = ({
                 />
               )}
             </div>
-          <div className={`space-y-0.5 ${rounded ? "mt-1" : ""}`}>
+            <div className={`space-y-0.5 ${rounded ? "mt-1" : ""}`}>
               <p>{item.title}</p>
               {item.subtitle && (
                 <p className="text-[13px]">{item.subtitle}</p>

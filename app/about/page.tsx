@@ -2,95 +2,34 @@ import Image from "next/image";
 import Link from "next/link";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
+import { ScrambleText } from "../components/ScrambleText";
+import { client, hasProjectId } from "@/sanity/lib/client";
+import { PRODUCED_WORK_ITEMS_QUERY } from "@/sanity/lib/queries";
 
-const producedWorks = [
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-  {
-    title: "Unpaused / Vela",
-    label: "ABCDEF Label",
-    artist: "theeluu",
-    role: "Mix, Mastering",
-    date: "2025/10/17",
-  },
-  {
-    title: "Deep Blue / Deey & Leo Iwamura",
-    label: "損保生命",
-    artist: "Leo Iwamura",
-    role: "Beat",
-    date: "2025/09/21",
-  },
-  {
-    title: "ラムネサイダー / ASA Wu",
-    label: "hrc Label",
-    artist: "theeluu",
-    role: "Beat, Mix, Mastering",
-    date: "2025/09/14",
-  },
-];
+type ProducedWorkItem = {
+  _id: string;
+  title: string;
+  label: string;
+  artist: string;
+  role: string;
+  date: string;
+};
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const producedWorks =
+    hasProjectId && client
+      ? ((await client.fetch(PRODUCED_WORK_ITEMS_QUERY)) as ProducedWorkItem[])
+      : [
+        {
+          _id: "produced-work-placeholder-1",
+          title: "Unpaused / Vela",
+          label: "ABCDEF Label",
+          artist: "theeluu",
+          role: "Mix, Mastering",
+          date: "2025/10/17",
+        },
+      ];
+
   return (
     <div className="flex min-h-full flex-col flex-1">
       <Header />
@@ -154,9 +93,16 @@ export default function AboutPage() {
                           href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                          className="inline-flex items-center gap-1 w-fit"
                         >
-                          <span className="whitespace-nowrap">Google Map</span>
+                          <span className="whitespace-nowrap">
+                            <ScrambleText
+                              text="Google Map"
+                              mode="lap"
+                              speedMs={40}
+                              durationMs={400}
+                            />
+                          </span>
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                       </p>
@@ -165,29 +111,36 @@ export default function AboutPage() {
                     <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                       <p className="w-[80px] shrink-0">Contact</p>
                       <div className="flex flex-1 flex-col items-start">
-                        <Link
-                          href="mailto:contact@hrc.com"
-                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
-                        >
-                          <span>mail</span>
+                        <Link href="mailto:contact@hrc.com" className="flex items-center gap-1 w-fit">
+                          <ScrambleText
+                            text="mail"
+                            mode="lap"
+                            speedMs={40}
+                            durationMs={400}
+                          />
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </Link>
                         <a
                           href="https://twitter.com"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                          className="flex items-center gap-1 w-fit"
                         >
-                          <span>X</span>
+                          <ScrambleText text="X" mode="lap" speedMs={40} durationMs={400} />
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                         <a
                           href="https://www.instagram.com"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 hover:opacity-70 transition-opacity w-fit"
+                          className="flex items-center gap-1 w-fit"
                         >
-                          <span>instagram</span>
+                          <ScrambleText
+                            text="instagram"
+                            mode="lap"
+                            speedMs={40}
+                            durationMs={400}
+                          />
                           <Image src="/icon-map.svg" alt="" width={9} height={9} />
                         </a>
                       </div>
@@ -207,8 +160,8 @@ export default function AboutPage() {
           </div>
 
           <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
-            {producedWorks.map((work, index) => (
-              <div key={`${work.title}-${work.date}-${index}`} className="contents">
+            {producedWorks.map((work) => (
+              <div key={work._id} className="contents">
                 <div className="col-span-6 md:col-span-4 [grid-row:span_1]">
                   {work.title}
                 </div>

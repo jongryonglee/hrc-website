@@ -1,29 +1,67 @@
 import { Header } from "../components/Header";
 import { ContentGrid, type GridItem } from "../components/ContentGrid";
 import { Footer } from "../components/Footer";
+import { client, hasProjectId } from "@/sanity/lib/client";
+import { WORKS_ITEMS_QUERY } from "@/sanity/lib/queries";
 
-const worksImages = [
-  "/images/works-1.gif",
-  "/gifs/11.gif",
-  "/gifs/12.gif",
-  "/gifs/13.gif",
-  "/images/works-5.png",
-  "/gifs/14.gif",
-  "/images/works-7.png",
-  "/gifs/15.gif",
-  "/gifs/16.gif",
-  "/gifs/17.gif",
-  "/gifs/18.gif",
-  "/gifs/20.gif",
-];
+type WorkItem = {
+  _id: string;
+  title: string;
+  artist: string;
+  duration: string;
+  producer?: string | null;
+  category: "music-video" | "sound-effect";
+  videoUrl: string;
+  thumbnailUrl?: string | null;
+};
 
-const worksItems: GridItem[] = Array.from({ length: 18 }).map((_, i) => ({
-  image: worksImages[i % worksImages.length],
-  title: "Saiwai / takeisme",
-  subtitle: "03:24 - Prod.theeluu",
-}));
+export default async function WorkPage() {
+  const sourceItems =
+    hasProjectId && client
+      ? ((await client.fetch(WORKS_ITEMS_QUERY)) as WorkItem[])
+      : [];
+  const counts = sourceItems.reduce(
+    (acc, item) => {
+      acc.all += 1;
+      if (item.category === "music-video") acc.musicVideo += 1;
+      if (item.category === "sound-effect") acc.soundEffect += 1;
+      return acc;
+    },
+    { all: 0, musicVideo: 0, soundEffect: 0 }
+  );
+  const summaryText =
+    counts.all > 0
+      ? `all${counts.all} / music video${counts.musicVideo} / sound effect${counts.soundEffect}`
+      : "all1 / music video1 / sound effect0";
 
-export default function WorkPage() {
+  const items = sourceItems.flatMap((item) => {
+    if (!item.thumbnailUrl) return [];
+
+    const subtitleParts = [item.duration, item.producer && `Prod.${item.producer}`]
+      .filter(Boolean)
+      .join(" - ");
+
+    return [
+      {
+        _key: item._id,
+        image: item.thumbnailUrl,
+        title: `${item.title} / ${item.artist}`,
+        subtitle: subtitleParts || undefined,
+      },
+    ];
+  });
+
+  const worksItems: GridItem[] =
+    items.length > 0
+      ? items
+      : [
+          {
+            _key: "placeholder",
+            image: "/images/works-1.gif",
+            title: "Saiwai / takeisme",
+            subtitle: "03:24 - Prod.theeluu",
+          },
+        ];
   return (
     <div className="flex min-h-full flex-col flex-1">
       <Header />
@@ -36,7 +74,7 @@ export default function WorkPage() {
             <h1>(Works)</h1>
           </div>
           <div className="grid-full [grid-row:span_2]">
-            <p>all8 / music video3 / sound effect12</p>
+            <p className="whitespace-nowrap">{summaryText}</p>
           </div>
         </div>
         <ContentGrid
