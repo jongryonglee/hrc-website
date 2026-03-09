@@ -1,7 +1,7 @@
 import { Header } from "../components/Header";
 import { ContentGrid, type GridItem } from "../components/ContentGrid";
 import { Footer } from "../components/Footer";
-import { client } from "@/sanity/lib/client";
+import { client, hasProjectId } from "@/sanity/lib/client";
 import { OFFICE_REC_ITEMS_QUERY } from "@/sanity/lib/queries";
 
 type OfficeRecItem = {
@@ -12,10 +12,10 @@ type OfficeRecItem = {
 };
 
 export default async function OfficeRecPage() {
-  const hasProject = Boolean(client.config().projectId);
-  const sourceItems = hasProject
-    ? ((await client.fetch(OFFICE_REC_ITEMS_QUERY)) as OfficeRecItem[])
-    : [];
+  const sourceItems =
+    hasProjectId && client
+      ? ((await client.fetch(OFFICE_REC_ITEMS_QUERY)) as OfficeRecItem[])
+      : [];
 
   const items = sourceItems.flatMap((item) => {
     if (!item.thumbnailUrl) return [];

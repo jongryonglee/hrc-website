@@ -1,7 +1,7 @@
 import { Header } from "../components/Header";
 import { ContentGrid, type GridItem } from "../components/ContentGrid";
 import { Footer } from "../components/Footer";
-import { client } from "@/sanity/lib/client";
+import { client, hasProjectId } from "@/sanity/lib/client";
 import { WORKS_ITEMS_QUERY } from "@/sanity/lib/queries";
 
 type WorkItem = {
@@ -16,10 +16,10 @@ type WorkItem = {
 };
 
 export default async function WorkPage() {
-  const hasProject = Boolean(client.config().projectId);
-  const sourceItems = hasProject
-    ? ((await client.fetch(WORKS_ITEMS_QUERY)) as WorkItem[])
-    : [];
+  const sourceItems =
+    hasProjectId && client
+      ? ((await client.fetch(WORKS_ITEMS_QUERY)) as WorkItem[])
+      : [];
   const counts = sourceItems.reduce(
     (acc, item) => {
       acc.all += 1;

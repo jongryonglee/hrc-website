@@ -1,7 +1,7 @@
 import { Header } from "../components/Header";
 import { GraphicDesignGrid } from "../components/GraphicDesignGrid";
 import { Footer } from "../components/Footer";
-import { client } from "@/sanity/lib/client";
+import { client, hasProjectId } from "@/sanity/lib/client";
 import { GRAPHIC_DESIGN_ITEMS_QUERY } from "@/sanity/lib/queries";
 
 type GraphicDesignItem = {
@@ -12,10 +12,10 @@ type GraphicDesignItem = {
 };
 
 export default async function GraphicDesignPage() {
-  const hasProject = Boolean(client.config().projectId);
-  const sourceItems = hasProject
-    ? ((await client.fetch(GRAPHIC_DESIGN_ITEMS_QUERY)) as GraphicDesignItem[])
-    : [];
+  const sourceItems =
+    hasProjectId && client
+      ? ((await client.fetch(GRAPHIC_DESIGN_ITEMS_QUERY)) as GraphicDesignItem[])
+      : [];
   const counts = sourceItems.reduce(
     (acc, item) => {
       acc.all += 1;

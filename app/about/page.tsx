@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
 import { ScrambleText } from "../components/ScrambleText";
-import { client } from "@/sanity/lib/client";
+import { client, hasProjectId } from "@/sanity/lib/client";
 import { PRODUCED_WORK_ITEMS_QUERY } from "@/sanity/lib/queries";
 
 type ProducedWorkItem = {
@@ -16,10 +16,10 @@ type ProducedWorkItem = {
 };
 
 export default async function AboutPage() {
-  const hasProject = Boolean(client.config().projectId);
-  const producedWorks = hasProject
-    ? ((await client.fetch(PRODUCED_WORK_ITEMS_QUERY)) as ProducedWorkItem[])
-    : [
+  const producedWorks =
+    hasProjectId && client
+      ? ((await client.fetch(PRODUCED_WORK_ITEMS_QUERY)) as ProducedWorkItem[])
+      : [
         {
           _id: "produced-work-placeholder-1",
           title: "Unpaused / Vela",
