@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --grid-row: 17px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -56,6 +57,10 @@ h1 {
     grid-template-columns: repeat(9, minmax(0, 1fr));
     grid-auto-rows: minmax(15px, auto);
     column-gap: 10px;
+  }
+
+  :root {
+    --grid-row: 15px;
   }
 
   p {

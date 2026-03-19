@@ -9,6 +9,7 @@ type ScrambleTextProps = {
   speedMs?: number;
   chars?: string;
   mode?: "scramble" | "lap";
+  active?: boolean;
 };
 
 const DEFAULT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -20,6 +21,7 @@ export const ScrambleText = ({
   speedMs = 30,
   chars = DEFAULT_CHARS,
   mode = "scramble",
+  active,
 }: ScrambleTextProps) => {
   const textRef = useRef<HTMLSpanElement>(null);
   const timersRef = useRef<number[]>([]);
@@ -113,12 +115,21 @@ export const ScrambleText = ({
     textRef.current.textContent = text;
   }, [clearTimers, mode, text]);
 
+  useEffect(() => {
+    if (active === undefined) return;
+    if (active) {
+      handleMouseEnter();
+    } else {
+      handleMouseLeave();
+    }
+  }, [active, handleMouseEnter, handleMouseLeave]);
+
   return (
     <span
       ref={textRef}
       className={className}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={active === undefined ? handleMouseEnter : undefined}
+      onMouseLeave={active === undefined ? handleMouseLeave : undefined}
     >
       {mode === "lap"
         ? words.map((word, index) => (

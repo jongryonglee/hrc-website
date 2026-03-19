@@ -6,12 +6,30 @@ export const WORKS_ITEMS_QUERY = defineQuery(/* groq */ `
       _id,
       title,
       artist,
-      duration,
       producer,
+      label,
+      role,
+      date,
       category,
       videoUrl,
       "thumbnailUrl": thumbnail.asset->url
     }
+`);
+
+export const WORK_ITEM_QUERY = defineQuery(/* groq */ `
+  *[_type == "workItem" && _id == $id][0]{
+    _id,
+    title,
+    artist,
+    producer,
+    category,
+    videoUrl,
+    "thumbnailUrl": thumbnail.asset->url,
+    "nextId": coalesce(
+      *[_type == "workItem" && _createdAt < ^._createdAt] | order(_createdAt desc)[0]._id,
+      *[_type == "workItem"] | order(_createdAt desc)[0]._id
+    )
+  }
 `);
 
 export const OFFICE_REC_ITEMS_QUERY = defineQuery(/* groq */ `
