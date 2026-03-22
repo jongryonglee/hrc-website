@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import Image from "next/image";
 
 const FALLBACK_IMAGES = [
   "/images/works-1.png",
@@ -79,10 +80,12 @@ function GridCopy({
             className="relative overflow-hidden"
             style={{ gridArea: area.name, aspectRatio: "360 / 274" }}
           >
-            <img
+            <Image
               src={src}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              sizes="(min-width: 1024px) 20vw, 33vw"
+              className="object-cover"
             />
             <img
               src="/works-mask.svg"

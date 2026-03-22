@@ -75,10 +75,13 @@ export default async function WorkDetailPage({
 
   const thumbnailContent = data?.thumbnailUrl ? (
     <>
-      <img
+      <Image
         src={data.thumbnailUrl}
         alt=""
-        className="absolute inset-0 h-full w-full object-cover"
+        fill
+        priority
+        sizes="(min-width: 768px) 60vw, 95vw"
+        className="object-cover"
       />
       <img
         src="/works-mask.svg"
@@ -91,8 +94,8 @@ export default async function WorkDetailPage({
   );
 
   return (
-    <div className="flex min-h-full flex-col flex-1">
-      <section className="flex flex-col flex-1 md:grid" style={{ gridTemplateRows: "1fr" }}>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <section className="flex flex-col flex-1 md:grid overflow-hidden" style={{ gridTemplateRows: "1fr" }}>
 
         {/* ヘッダー */}
         <div className="md:[grid-area:1/1] relative md:z-20 pointer-events-none self-start w-full">
@@ -156,7 +159,7 @@ export default async function WorkDetailPage({
 
         {/* クレジット：モバイル=2グリッド後 col3スタート / デスクトップ=row8 col14オーバーレイ */}
         <div className="mt-[calc(2*var(--grid-row))] pb-[34px] md:mt-0 md:pb-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none">
-          <div className="layout-grid md:items-start pointer-events-auto">
+          <div className="layout-grid md:items-start pointer-events-none">
 
             {/* subgridコンテナ：モバイル=col3から5列 / デスクトップ=col14から5列 row8 */}
             <div className="col-start-3 col-span-7 md:col-span-5 md:col-start-14 md:[grid-row-start:8] grid [grid-template-columns:subgrid] gap-y-0 content-start">
@@ -169,7 +172,7 @@ export default async function WorkDetailPage({
             </div>
 
             {/* next リンク */}
-            <div className="col-start-3 col-span-5 mt-[var(--grid-row)] md:mt-0 md:col-start-16 md:col-span-3 md:[grid-row-start:39]">
+            <div className="col-start-3 col-span-5 mt-[var(--grid-row)] md:mt-0 md:col-start-16 md:col-span-3 md:[grid-row-start:24] pointer-events-auto">
               <Link
                 href={data?.nextId ? `/works/${data.nextId}` : "/works"}
                 className="hover:opacity-70 transition-opacity inline-flex items-center gap-2"
