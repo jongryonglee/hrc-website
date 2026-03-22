@@ -1,5 +1,14 @@
 import { defineQuery } from "next-sanity";
 
+// トップページ用：最新15件のサムネイルのみ取得
+export const TOP_GRID_QUERY = defineQuery(/* groq */ `
+  *[_type == "workItem"]
+    | order(_createdAt desc) [0...15] {
+      _id,
+      "thumbnailUrl": thumbnail.asset->url
+    }
+`);
+
 export const WORKS_ITEMS_QUERY = defineQuery(/* groq */ `
   *[_type == "workItem"]
     | order(_createdAt desc) {

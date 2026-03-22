@@ -154,3 +154,19 @@ h1 {
     animation: scroll-horizontal-mobile 80s linear infinite;
   }
 }
+
+/* ── トップページ グリッド横スクロール ── */
+/* 移動量 = グリッド幅 + gap = (100vw - padding×2) + 17px */
+:root {
+  --tgs-amount: calc(100vw - 3px);   /* mobile: (100vw-20px) + 17px */
+}
+@media (min-width: 768px) {
+  :root {
+    --tgs-amount: calc(100vw - 17px); /* desktop: (100vw-34px) + 17px */
+  }
+}
+
+@keyframes top-grid-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-1 * var(--tgs-amount))); }
+}
