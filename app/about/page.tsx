@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Header } from "../components/Header";
@@ -5,6 +7,7 @@ import { Footer } from "../components/Footer";
 import { ScrambleText } from "../components/ScrambleText";
 import { client, hasProjectId } from "@/sanity/lib/client";
 import { PRODUCED_WORK_ITEMS_QUERY } from "@/sanity/lib/queries";
+import { useEffect, useState } from "react";
 
 type ProducedWorkItem = {
   _id: string;
@@ -15,11 +18,13 @@ type ProducedWorkItem = {
   date: string;
 };
 
-export default async function AboutPage() {
-  const producedWorks =
-    hasProjectId && client
-      ? ((await client.fetch(PRODUCED_WORK_ITEMS_QUERY)) as ProducedWorkItem[])
-      : [
+export default function AboutPage() {
+  const [producedWorks, setProducedWorks] = useState<ProducedWorkItem[]>([]);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasProjectId || !client) {
+      setProducedWorks([
         {
           _id: "produced-work-placeholder-1",
           title: "Unpaused / Vela",
@@ -28,7 +33,24 @@ export default async function AboutPage() {
           role: "Mix, Mastering",
           date: "2025/10/17",
         },
-      ];
+      ]);
+      return;
+    }
+
+    let isMounted = true;
+    client
+      .fetch(PRODUCED_WORK_ITEMS_QUERY)
+      .then((data) => {
+        if (isMounted) setProducedWorks(data as ProducedWorkItem[]);
+      })
+      .catch(() => {
+        if (isMounted) setProducedWorks([]);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex min-h-full flex-col flex-1">
@@ -161,22 +183,58 @@ export default async function AboutPage() {
 
           <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
             {producedWorks.map((work) => (
-              <div key={work._id} className="contents">
+              <div
+                key={work._id}
+                className="group/row contents"
+                onMouseEnter={() => setHoveredId(work._id)}
+                onMouseLeave={() => setHoveredId(null)}
+              >
                 <div className="col-span-6 md:col-span-4 [grid-row:span_1]">
-                  {work.title}
+                  <ScrambleText
+                    text={work.title}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={hoveredId === work._id}
+                  />
                 </div>
                 <div className="col-span-3 md:col-span-2 [grid-row:span_1] text-right">
-                  {work.label}
+                  <ScrambleText
+                    text={work.label}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={hoveredId === work._id}
+                  />
                 </div>
                 <div className="hidden md:block md:col-span-3 md:[grid-row:span_1]" />
                 <div className="col-span-3 md:col-span-2 [grid-row:span_1]">
-                  {work.artist}
+                  <ScrambleText
+                    text={work.artist}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={hoveredId === work._id}
+                  />
                 </div>
                 <div className="col-span-3 md:col-span-2 [grid-row:span_1] md:text-right">
-                  {work.role}
+                  <ScrambleText
+                    text={work.role}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={hoveredId === work._id}
+                  />
                 </div>
-                <div className="col-span-3 md:col-span-5 [grid-row:span_1] text-right">
-                  {work.date}
+                <div className="col-span-3 md:col-span-5 [grid-row:span_1] text-right relative overflow-visible">
+                  <ScrambleText
+                    text={work.date}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={hoveredId === work._id}
+                  />
+                  <div className="pointer-events-none absolute left-1/2 bottom-0 h-px w-[200vw] -translate-x-1/2 bg-white/0 transition-colors group-hover/row:bg-white/70" />
                 </div>
               </div>
             ))}

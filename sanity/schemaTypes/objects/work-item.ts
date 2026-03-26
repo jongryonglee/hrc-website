@@ -20,16 +20,28 @@ export const workItem = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: "duration",
-      title: "Duration",
-      type: "string",
-      description: "例: 03:24",
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
       name: "producer",
       title: "Producer",
       type: "string",
+    }),
+    defineField({
+      name: "label",
+      title: "Label",
+      type: "string",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "role",
+      title: "Role",
+      type: "string",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "date",
+      title: "Date",
+      type: "string",
+      description: "例: 2025/10/17",
+      validation: (rule) => rule.required(),
     }),
     defineField({
       name: "category",
