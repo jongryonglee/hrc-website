@@ -129,7 +129,7 @@ export default async function WorkDetailPage({
           </div>
         </div>
 
-        {/* リンク＋Sound ON：モバイル=画像下1グリッド後フロー / デスクトップ=下寄せオーバーレイ */}
+        {/* リンク＋Sound 切替：モバイル=画像下1グリッド後フロー / デスクトップ=下寄せオーバーレイ */}
         <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:pb-[34px]">
           <div className="layout-grid pointer-events-auto">
             <div className="col-span-6 md:col-span-4 flex flex-col gap-1">
