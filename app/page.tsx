@@ -19,8 +19,8 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex flex-col overflow-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)]">
-      <section className="flex-1 overflow-hidden flex flex-col justify-end">
+    <div className="flex flex-col overflow-x-visible overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)]">
+      <section className="flex-1 min-h-0 overflow-x-visible overflow-y-hidden flex flex-col justify-end">
         <TopGrid cmsItems={cmsItems} />
       </section>
 

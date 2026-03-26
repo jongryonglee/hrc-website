@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 
 const FALLBACK_IMAGES = [
@@ -14,35 +14,73 @@ const FALLBACK_IMAGES = [
   "/images/works-8.png",
 ];
 
-// 大セルが1行ずつ斜めにずれるジグザグ配置
-//   y: col 3-4 / row 1-2（上）
-//   z: col 1-2 / row 2-3（中）
-//   w: col 4-5 / row 3-4（下）
+// 6×4 パターン（x=1×1 / w,y,z=2×2）
+//   xxxxww
+//   xxyyww
+//   zzyyxx
+//   zzxxxx
+//   w: col5-6 row1-2 / y: col3-4 row2-3 / z: col1-2 row3-4
 const GRID_AREAS = [
-  { name: "a" }, // row1 col1
-  { name: "b" }, // row1 col2
-  { name: "y" }, // 2×2: col 3-4 / row 1-2
-  { name: "c" }, // row1 col5
-  { name: "d" }, // row1 col6
-  { name: "z" }, // 2×2: col 1-2 / row 2-3
-  { name: "e" }, // row2 col5
-  { name: "f" }, // row2 col6
-  { name: "g" }, // row3 col3
-  { name: "w" }, // 2×2: col 4-5 / row 3-4
-  { name: "h" }, // row3 col6
-  { name: "i" }, // row4 col1
-  { name: "j" }, // row4 col2
-  { name: "k" }, // row4 col3
-  { name: "l" }, // row4 col6
+  { name: "a" }, // x row1 col1
+  { name: "b" }, // x row1 col2
+  { name: "c" }, // x row1 col3
+  { name: "d" }, // x row1 col4
+  { name: "w" }, // 2×2: col5-6 / row1-2
+  { name: "e" }, // x row2 col1
+  { name: "f" }, // x row2 col2
+  { name: "y" }, // 2×2: col3-4 / row2-3
+  { name: "g" }, // x row3 col5
+  { name: "h" }, // x row3 col6
+  { name: "z" }, // 2×2: col1-2 / row3-4
+  { name: "i" }, // x row4 col3
+  { name: "j" }, // x row4 col4
+  { name: "k" }, // x row4 col5
+  { name: "l" }, // x row4 col6
 ] as const;
 
 // 同名を2×2に並べることで各セルが2列×2行を占有
 const GRID_TEMPLATE_AREAS = `
-  "a b y y c d"
-  "z z y y e f"
-  "z z g w w h"
-  "i j k w w l"
+  "a b c d w w"
+  "e f y y w w"
+  "z z y y g h"
+  "z z i j k l"
 `;
+
+/** 2×2 大セル（w / y / z）では大きいマスク SVG を使う */
+const BIG_MASK_AREAS = new Set<string>(["w", "y", "z"]);
+
+/** グリッド・横ストリップ共通 gap */
+const GRID_GAP_PX = 17;
+/** 1列の幅: モバイル 268px / md 以上 360px（--cell-w で切替） */
+const CELL_W_CSS_VAR = "var(--cell-w)";
+
+/** CMS がなければ GRID_AREAS 順に、直前と同じフォールバック URL だけ避ける */
+function buildThumbnailUrls(cmsItems: WorkItem[]): string[] {
+  const n = FALLBACK_IMAGES.length;
+  const out: string[] = [];
+  let prev: string | null = null;
+
+  for (let i = 0; i < GRID_AREAS.length; i++) {
+    const cms = cmsItems[i]?.thumbnailUrl;
+    if (cms) {
+      out[i] = cms;
+      prev = cms;
+      continue;
+    }
+    const start = i % n;
+    let picked = FALLBACK_IMAGES[start];
+    for (let step = 0; step < n; step++) {
+      const url = FALLBACK_IMAGES[(start + step) % n];
+      if (url !== prev) {
+        picked = url;
+        break;
+      }
+    }
+    out[i] = picked;
+    prev = picked;
+  }
+  return out;
+}
 
 type WorkItem = {
   _id: string;
@@ -56,41 +94,48 @@ function GridCopy({
   cmsItems: WorkItem[];
   innerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
+  const urls = useMemo(() => buildThumbnailUrls(cmsItems), [cmsItems]);
+
   return (
     <div
       ref={innerRef}
-      className="flex-shrink-0"
+      className="shrink-0 [--cell-w:268px] md:[--cell-w:360px]"
       style={{
         display: "grid",
-        // 160% にすると 1列 ≈ 360px → aspect-[360/274] = 1:0.76 がちょうど成立
-        gridTemplateColumns: "repeat(6, 1fr)",
+        gridTemplateColumns: `repeat(6, ${CELL_W_CSS_VAR})`,
         gridTemplateAreas: GRID_TEMPLATE_AREAS,
-        gap: "17px",
+        gap: GRID_GAP_PX,
         marginTop: "-34px",
-        width: "100%",
+        width: `calc(6 * ${CELL_W_CSS_VAR} + 5 * ${GRID_GAP_PX}px)`,
       }}
     >
       {GRID_AREAS.map((area, i) => {
-        const src =
-          cmsItems[i]?.thumbnailUrl ??
-          FALLBACK_IMAGES[i % FALLBACK_IMAGES.length];
+        const src = urls[i];
+        const maskSrc = BIG_MASK_AREAS.has(area.name)
+          ? "/icon/works-mask-big.svg"
+          : "/works-mask.svg";
+
         return (
           <div
             key={area.name}
-            className="relative overflow-hidden"
-            style={{ gridArea: area.name, aspectRatio: "360 / 274" }}
+            className="relative isolate aspect-[268/204] overflow-hidden md:aspect-[360/274]"
+            style={{ gridArea: area.name }}
           >
+            {/* 写真とマスクを同じ box に対して object-cover で合わせる（元画像のアスペクト比が変わっても枠に対して同じクロップになる） */}
             <Image
               src={src}
               alt=""
               fill
-              sizes="(min-width: 1024px) 20vw, 33vw"
-              className="object-cover"
+              sizes="(max-width: 767px) 268px, 360px"
+              className="object-cover object-center"
+              draggable={false}
             />
             <img
-              src="/works-mask.svg"
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 h-full w-full"
+              src={maskSrc}
+              alt=""
+              aria-hidden={true}
+              draggable={false}
+              className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none"
             />
           </div>
         );
@@ -108,10 +153,10 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
     const copy = copyRef.current;
     if (!container || !copy) return;
 
-    // 1コピー分の幅 + gap を測定して keyframes を動的に設定
+    // 1コピー幅 + gap でループ（2枚目は1枚目と同一内容でシームレス）
     const updateAnimation = () => {
       const w = copy.offsetWidth;
-      const amount = w + 17; // gap = 17px
+      const periodPx = w + GRID_GAP_PX;
 
       // インライン keyframes を <style> タグで注入
       const styleId = "top-grid-keyframes";
@@ -124,11 +169,11 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
       el.textContent = `
         @keyframes top-grid-scroll {
           from { transform: translateX(0); }
-          to   { transform: translateX(-${amount}px); }
+          to   { transform: translateX(-${periodPx}px); }
         }
       `;
 
-      container.style.animation = "top-grid-scroll 40s linear infinite";
+      container.style.animation = "top-grid-scroll 40s linear infinite"; // 速度
     };
 
     updateAnimation();
@@ -141,12 +186,11 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
   return (
     <div
       ref={containerRef}
-      className="flex gap-[17px]"
-      style={{ willChange: "transform" }}
+      className="flex w-max max-w-none shrink-0"
+      style={{ gap: GRID_GAP_PX, willChange: "transform" }}
     >
-      <GridCopy cmsItems={cmsItems} innerRef={copyRef} />
-      <GridCopy cmsItems={cmsItems} />
-      <GridCopy cmsItems={cmsItems} />
+      <GridCopy key="a" cmsItems={cmsItems} innerRef={copyRef} />
+      <GridCopy key="b" cmsItems={cmsItems} />
     </div>
   );
 }
