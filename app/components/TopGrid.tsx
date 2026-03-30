@@ -14,53 +14,158 @@ const FALLBACK_IMAGES = [
   "/images/works-8.png",
 ];
 
-// 6×4 パターン（x=1×1 / w,y,z=2×2）
-//   xxxxww
-//   xxyyww
-//   zzyyxx
-//   zzxxxx
-//   w: col5-6 row1-2 / y: col3-4 row2-3 / z: col1-2 row3-4
-const GRID_AREAS = [
-  { name: "a" }, // x row1 col1
-  { name: "b" }, // x row1 col2
-  { name: "c" }, // x row1 col3
-  { name: "d" }, // x row1 col4
-  { name: "w" }, // 2×2: col5-6 / row1-2
-  { name: "e" }, // x row2 col1
-  { name: "f" }, // x row2 col2
-  { name: "y" }, // 2×2: col3-4 / row2-3
-  { name: "g" }, // x row3 col5
-  { name: "h" }, // x row3 col6
-  { name: "z" }, // 2×2: col1-2 / row3-4
-  { name: "i" }, // x row4 col3
-  { name: "j" }, // x row4 col4
-  { name: "k" }, // x row4 col5
-  { name: "l" }, // x row4 col6
-] as const;
+const SLOT_COUNT = 15;
+/** 巡目1の大3＋巡目2の大3。1ブロックで base[k]〜base[k+5] を大セルに順に割当 */
+const BIG_SLOTS_PER_PAIR = 6;
+/** 15 枚を大セルに一通り通すのに 6×3=18 枠（折り返しで 0,1,2 が再度大セルに出る） */
+const BIG_BLOCK_COUNT = 3;
 
-// 同名を2×2に並べることで各セルが2列×2行を占有
-const GRID_TEMPLATE_AREAS = `
-  "a b c d w w"
-  "e f y y w w"
-  "z z y y g h"
-  "z z i j k l"
-`;
+// 巡目1: 6×4（e / h / i = 2×2）
+//   a b c d e e
+//   f g h h e e
+//   i i h h j k
+//   i i l m n o
+const GRID_CYCLE1 = {
+  template: `
+  "a b c d e e"
+  "f g h h e e"
+  "i i h h j k"
+  "i i l m n o"
+`,
+  areas: [
+    { name: "a" },
+    { name: "b" },
+    { name: "c" },
+    { name: "d" },
+    { name: "e" },
+    { name: "f" },
+    { name: "g" },
+    { name: "h" },
+    { name: "i" },
+    { name: "j" },
+    { name: "k" },
+    { name: "l" },
+    { name: "m" },
+    { name: "n" },
+    { name: "o" },
+  ] as const,
+  bigMaskAreas: new Set<string>(["e", "h", "i"]),
+};
 
-/** 2×2 大セル（w / y / z）では大きいマスク SVG を使う */
-const BIG_MASK_AREAS = new Set<string>(["w", "y", "z"]);
+// 巡目2: 小セルは各ラベルで base[ラベル]。大セル（f / i / j）はブロック内の続きの3枚
+//   b c d e f f
+//   g h i i f f
+//   j j i i k l
+//   j j m n o a
+const GRID_CYCLE2 = {
+  template: `
+  "b c d e f f"
+  "g h i i f f"
+  "j j i i k l"
+  "j j m n o a"
+`,
+  areas: [
+    { name: "b" },
+    { name: "c" },
+    { name: "d" },
+    { name: "e" },
+    { name: "f" },
+    { name: "g" },
+    { name: "h" },
+    { name: "i" },
+    { name: "j" },
+    { name: "k" },
+    { name: "l" },
+    { name: "m" },
+    { name: "n" },
+    { name: "o" },
+    { name: "a" },
+  ] as const,
+  bigMaskAreas: new Set<string>(["f", "i", "j"]),
+};
 
 /** グリッド・横ストリップ共通 gap */
 const GRID_GAP_PX = 17;
+/** 巡目1+gap+巡目2 が 1 セットだけだったときの 1 ループ秒数（見た目の速さの基準） */
+const BASE_SECONDS_PER_PAIR_PERIOD = 80;
 /** 1列の幅: モバイル 268px / md 以上 360px（--cell-w で切替） */
 const CELL_W_CSS_VAR = "var(--cell-w)";
 
-/** CMS がなければ GRID_AREAS 順に、直前と同じフォールバック URL だけ避ける */
+const LETTER_TO_INDEX: Record<string, number> = {
+  a: 0,
+  b: 1,
+  c: 2,
+  d: 3,
+  e: 4,
+  f: 5,
+  g: 6,
+  h: 7,
+  i: 8,
+  j: 9,
+  k: 10,
+  l: 11,
+  m: 12,
+  n: 13,
+  o: 14,
+};
+
+function modSlot(i: number): number {
+  return ((i % SLOT_COUNT) + SLOT_COUNT) % SLOT_COUNT;
+}
+
+function smallUrlForBlock(
+  base: string[],
+  letter: string,
+  blockIndex: number,
+): string {
+  const idx = LETTER_TO_INDEX[letter];
+  if (idx === undefined) return base[0];
+  const start = modSlot(blockIndex * BIG_SLOTS_PER_PAIR);
+  // ブロックが進むごとに a…o 全体を同じオフセットで回す（小セルもスクロールで変わる）
+  return base[modSlot(idx + start)];
+}
+
+/** 巡目1: 小セルはブロックオフセット付き。大セル e,h,i はブロック内 0,1,2 番目 */
+function buildUrlsForCycle1(base: string[], blockIndex: number): string[] {
+  const start = modSlot(blockIndex * BIG_SLOTS_PER_PAIR);
+  const bigByName: Record<string, string> = {
+    e: base[modSlot(start + 0)],
+    h: base[modSlot(start + 1)],
+    i: base[modSlot(start + 2)],
+  };
+
+  return GRID_CYCLE1.areas.map((area) => {
+    if (GRID_CYCLE1.bigMaskAreas.has(area.name)) {
+      return bigByName[area.name]!;
+    }
+    return smallUrlForBlock(base, area.name, blockIndex);
+  });
+}
+
+/** 巡目2: 小セルはブロックオフセット付き。大セル f,i,j は同ブロックで 3,4,5 番目 */
+function buildUrlsForCycle2(base: string[], blockIndex: number): string[] {
+  const start = modSlot(blockIndex * BIG_SLOTS_PER_PAIR);
+  const bigByName: Record<string, string> = {
+    f: base[modSlot(start + 3)],
+    i: base[modSlot(start + 4)],
+    j: base[modSlot(start + 5)],
+  };
+
+  return GRID_CYCLE2.areas.map((area) => {
+    if (GRID_CYCLE2.bigMaskAreas.has(area.name)) {
+      return bigByName[area.name]!;
+    }
+    return smallUrlForBlock(base, area.name, blockIndex);
+  });
+}
+
+/** CMS がなければ a…o 順に、直前と同じフォールバック URL だけ避ける */
 function buildThumbnailUrls(cmsItems: WorkItem[]): string[] {
   const n = FALLBACK_IMAGES.length;
   const out: string[] = [];
   let prev: string | null = null;
 
-  for (let i = 0; i < GRID_AREAS.length; i++) {
+  for (let i = 0; i < SLOT_COUNT; i++) {
     const cms = cmsItems[i]?.thumbnailUrl;
     if (cms) {
       out[i] = cms;
@@ -88,13 +193,15 @@ type WorkItem = {
 };
 
 function GridCopy({
-  cmsItems,
+  variant,
+  urls,
   innerRef,
 }: {
-  cmsItems: WorkItem[];
+  variant: 1 | 2;
+  urls: string[];
   innerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
-  const urls = useMemo(() => buildThumbnailUrls(cmsItems), [cmsItems]);
+  const cfg = variant === 1 ? GRID_CYCLE1 : GRID_CYCLE2;
 
   return (
     <div
@@ -103,21 +210,21 @@ function GridCopy({
       style={{
         display: "grid",
         gridTemplateColumns: `repeat(6, ${CELL_W_CSS_VAR})`,
-        gridTemplateAreas: GRID_TEMPLATE_AREAS,
+        gridTemplateAreas: cfg.template,
         gap: GRID_GAP_PX,
         marginTop: "-34px",
         width: `calc(6 * ${CELL_W_CSS_VAR} + 5 * ${GRID_GAP_PX}px)`,
       }}
     >
-      {GRID_AREAS.map((area, i) => {
+      {cfg.areas.map((area, i) => {
         const src = urls[i];
-        const maskSrc = BIG_MASK_AREAS.has(area.name)
+        const maskSrc = cfg.bigMaskAreas.has(area.name)
           ? "/icon/works-mask-big.svg"
           : "/works-mask.svg";
 
         return (
           <div
-            key={area.name}
+            key={`${variant}-${area.name}`}
             className="relative isolate aspect-[268/204] overflow-hidden md:aspect-[360/274]"
             style={{ gridArea: area.name }}
           >
@@ -146,19 +253,37 @@ function GridCopy({
 
 export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const copyRef = useRef<HTMLDivElement>(null);
+  const cycleMeasureRef = useRef<HTMLDivElement>(null);
+
+  const baseUrls = useMemo(() => buildThumbnailUrls(cmsItems), [cmsItems]);
+
+  const urlsByBlock = useMemo(
+    () =>
+      Array.from({ length: BIG_BLOCK_COUNT }, (_, blockIndex) => ({
+        cycle1: buildUrlsForCycle1(baseUrls, blockIndex),
+        cycle2: buildUrlsForCycle2(baseUrls, blockIndex),
+      })),
+    [baseUrls],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
-    const copy = copyRef.current;
-    if (!container || !copy) return;
+    const cycle = cycleMeasureRef.current;
+    if (!container || !cycle) return;
 
-    // 1コピー幅 + gap でループ（2枚目は1枚目と同一内容でシームレス）
+    // ブロック×（巡目1+gap+巡目2）の1周期 + 外側 gap でループ（複製と同一でシームレス）
     const updateAnimation = () => {
-      const w = copy.offsetWidth;
+      const w = cycle.offsetWidth;
       const periodPx = w + GRID_GAP_PX;
+      // 中身が長くなった分だけ移動距離が伸びるので、秒数も比例させて px/s を旧 1 ペア相当に近づける
+      const innerGapsBetweenBlocks =
+        (BIG_BLOCK_COUNT - 1) * GRID_GAP_PX;
+      const onePairWidth =
+        (w - innerGapsBetweenBlocks) / BIG_BLOCK_COUNT;
+      const onePairPeriodPx = onePairWidth + GRID_GAP_PX;
+      const durationSec =
+        (BASE_SECONDS_PER_PAIR_PERIOD * periodPx) / onePairPeriodPx;
 
-      // インライン keyframes を <style> タグで注入
       const styleId = "top-grid-keyframes";
       let el = document.getElementById(styleId) as HTMLStyleElement | null;
       if (!el) {
@@ -173,15 +298,30 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
         }
       `;
 
-      container.style.animation = "top-grid-scroll 40s linear infinite"; // 速度
+      container.style.animation = `top-grid-scroll ${durationSec}s linear infinite`;
     };
 
     updateAnimation();
 
     const ro = new ResizeObserver(updateAnimation);
-    ro.observe(copy);
+    ro.observe(cycle);
     return () => ro.disconnect();
   }, []);
+
+  const tripleBlock = (
+    <>
+      {urlsByBlock.map((row, blockIndex) => (
+        <div
+          key={blockIndex}
+          className="flex shrink-0"
+          style={{ gap: GRID_GAP_PX }}
+        >
+          <GridCopy variant={1} urls={row.cycle1} />
+          <GridCopy variant={2} urls={row.cycle2} />
+        </div>
+      ))}
+    </>
+  );
 
   return (
     <div
@@ -189,8 +329,16 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
       className="flex w-max max-w-none shrink-0"
       style={{ gap: GRID_GAP_PX, willChange: "transform" }}
     >
-      <GridCopy key="a" cmsItems={cmsItems} innerRef={copyRef} />
-      <GridCopy key="b" cmsItems={cmsItems} />
+      <div
+        ref={cycleMeasureRef}
+        className="flex shrink-0"
+        style={{ gap: GRID_GAP_PX }}
+      >
+        {tripleBlock}
+      </div>
+      <div className="flex shrink-0" style={{ gap: GRID_GAP_PX }}>
+        {tripleBlock}
+      </div>
     </div>
   );
 }

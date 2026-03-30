@@ -142,14 +142,20 @@ export default async function WorkDetailPage({
                 <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
                 <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
               </a>
-              <Link href="/404" className="link_co flex items-center gap-2 whitespace-nowrap">
+              <span
+                className="link_co flex items-center gap-2 whitespace-nowrap"
+                aria-disabled="true"
+              >
                 <ScrambleText text="Sound Cloud" mode="lap" speedMs={40} durationMs={400} />
                 <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
-              </Link>
-              <Link href="/404" className="link_co flex items-center gap-2 whitespace-nowrap">
+              </span>
+              <span
+                className="link_co flex items-center gap-2 whitespace-nowrap"
+                aria-disabled="true"
+              >
                 <ScrambleText text="Instagram" mode="lap" speedMs={40} durationMs={400} />
                 <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
-              </Link>
+              </span>
             </div>
             <div className="col-start-8 col-span-2 md:col-start-17 md:col-span-2 self-end">
               <SoundToggle />
