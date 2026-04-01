@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import Image from "next/image";
+import { isAnimatedGifUrl } from "@/sanity/lib/image";
 
 const worksImages = [
   "/images/works-1.gif",
@@ -52,7 +53,7 @@ export const WorksGridHorizontal = () => {
               className="object-cover scale-[1.05]"
               sizes="(max-width: 767px) 268px, 268px"
               priority={i < 4 && key === "grid-1"}
-              unoptimized={false}
+              unoptimized={isAnimatedGifUrl(worksImages[i % worksImages.length])}
             />
             {/* 黒い縁のマスクを上に重ねる（コンテナより少し大きくして画像のはみ出しを隠す） */}
             <Image

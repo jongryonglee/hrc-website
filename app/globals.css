@@ -77,6 +77,31 @@ h1 {
 
 .grid-full { grid-column: 1 / -1; }
 
+/* トップ起動時: スイッチ OFF アイコンの点滅（bootComplete 後は外す） */
+@keyframes switch-off-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0.12;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.switch-off-blink {
+  animation: switch-off-blink 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-off-blink {
+    animation: none;
+  }
+}
+
 /* 横スクロールバーを非表示にする */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
@@ -169,4 +194,59 @@ h1 {
 @keyframes top-grid-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(calc(-1 * var(--tgs-amount))); }
+}
+
+/* ── Works 詳細：上スクロールで次へ遷移時の入出アニメーション ── */
+@keyframes work-detail-enter-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes work-detail-exit-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-1rem);
+    filter: blur(3px);
+  }
+}
+
+.work-detail-enter-img {
+  animation: work-detail-enter-from-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.work-detail-enter-text {
+  animation: work-detail-enter-from-bottom 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.07s both;
+}
+
+.work-detail-enter-credits {
+  animation: work-detail-enter-from-bottom 0.48s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+}
+
+.work-detail-exit {
+  animation: work-detail-exit-up 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-detail-enter-img,
+  .work-detail-enter-text,
+  .work-detail-enter-credits,
+  .work-detail-exit {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
 }

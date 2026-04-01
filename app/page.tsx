@@ -1,7 +1,6 @@
 import { client, hasProjectId } from "@/sanity/lib/client";
 import { TOP_GRID_QUERY } from "@/sanity/lib/queries";
-import { TopFooter } from "./components/TopFooter";
-import { TopGrid } from "./components/TopGrid";
+import { HomeBootShell } from "./components/HomeBootShell";
 
 type WorkItem = {
   _id: string;
@@ -18,15 +17,5 @@ export default async function Home() {
     cmsItems = [];
   }
 
-  return (
-    <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)]">
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col justify-end">
-        <TopGrid cmsItems={cmsItems} />
-      </section>
-
-      <div className="h-[var(--grid-row)]" />
-
-      <TopFooter />
-    </div>
-  );
+  return <HomeBootShell cmsItems={cmsItems} />;
 }

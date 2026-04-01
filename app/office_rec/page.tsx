@@ -17,16 +17,14 @@ export default async function OfficeRecPage() {
       ? ((await client.fetch(OFFICE_REC_ITEMS_QUERY)) as OfficeRecItem[])
       : [];
 
-  const items = sourceItems.flatMap((item) => {
-    if (!item.thumbnailUrl) return [];
-    return [
-      {
-        _key: item._id,
-        image: item.thumbnailUrl,
-        title: `${item.title} / ${item.artist}`,
-      },
-    ];
-  });
+  const fallbackThumb = "/images/office-rec-1.png";
+
+  const items: GridItem[] = sourceItems.map((item) => ({
+    _key: item._id,
+    image: item.thumbnailUrl ?? fallbackThumb,
+    title: `${item.title} / ${item.artist}`,
+    href: `/office_rec/${item._id}`,
+  }));
 
   const officeRecItems: GridItem[] =
     items.length > 0
