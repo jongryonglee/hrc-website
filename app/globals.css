@@ -78,22 +78,36 @@ h1 {
 .grid-full { grid-column: 1 / -1; }
 
 /* トップ起動時: スイッチ OFF アイコンの点滅（bootComplete 後は外す） */
+/* duration は app/lib/homeBootTiming.ts の SWITCH_BOOT_ANIMATION_MS と同期すること */
+/* 旧 3000ms の 0〜77.778% を 100% に圧縮。3 回点灯のあとの暗で終了 → 4 回目は点灯させず ON */
 @keyframes switch-off-blink {
-  0%,
-  45% {
+  0% {
     opacity: 1;
+    animation-timing-function: steps(1, end);
   }
-  50%,
-  95% {
+  20% {
     opacity: 0.12;
+    animation-timing-function: steps(1, end);
+  }
+  40% {
+    opacity: 1;
+    animation-timing-function: steps(1, end);
+  }
+  60% {
+    opacity: 0.12;
+    animation-timing-function: steps(1, end);
+  }
+  80% {
+    opacity: 1;
+    animation-timing-function: steps(1, end);
   }
   100% {
-    opacity: 1;
+    opacity: 0.12;
   }
 }
 
 .switch-off-blink {
-  animation: switch-off-blink 1.4s ease-in-out infinite;
+  animation: switch-off-blink 2333ms 1 forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

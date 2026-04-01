@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
+import { SWITCH_BOOT_ANIMATION_MS } from "@/app/lib/homeBootTiming";
 import { TopFooter } from "./TopFooter";
 import { TopGrid } from "./TopGrid";
 
@@ -9,35 +11,38 @@ type WorkItem = {
   thumbnailUrl?: string | null;
 };
 
-/** OFF スイッチ点滅が終わるまでの時間（TopFooter の bootComplete を遅らせる） */
-const BOOT_PHASE_MS = 1800;
-
 export function HomeBootShell({ cmsItems }: { cmsItems: WorkItem[] }) {
-  const [bootComplete, setBootComplete] = useState(false);
+  const [bootDoneByTimer, setBootDoneByTimer] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const bootComplete = prefersReducedMotion || bootDoneByTimer;
 
-  useEffect(() => {
-    const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduced) {
-      setBootComplete(true);
-      return;
-    }
-
-    const id = window.setTimeout(() => setBootComplete(true), BOOT_PHASE_MS);
-    return () => clearTimeout(id);
+  const onBootSequenceEnd = useCallback(() => {
+    setBootDoneByTimer(true);
   }, []);
+
+  /** animationend が来ない場合のみ（CSS と JS のズレ対策） */
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    const id = window.setTimeout(() => {
+      setBootDoneByTimer((done) => (done ? done : true));
+    }, SWITCH_BOOT_ANIMATION_MS + 120);
+    return () => clearTimeout(id);
+  }, [prefersReducedMotion]);
 
   return (
     <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)]">
-      <section className="flex min-h-0 min-w-0 flex-1 flex-col justify-end">
-        <TopGrid cmsItems={cmsItems} />
+      <section className="relative flex min-h-0 min-w-0 flex-1 flex-col justify-end">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col justify-end overflow-hidden">
+          <TopGrid cmsItems={cmsItems} bootComplete={bootComplete} />
+        </div>
       </section>
 
       <div className="h-[var(--grid-row)]" />
 
-      <TopFooter bootComplete={bootComplete} />
+      <TopFooter
+        bootComplete={bootComplete}
+        onBootSequenceEnd={onBootSequenceEnd}
+      />
     </div>
   );
 }

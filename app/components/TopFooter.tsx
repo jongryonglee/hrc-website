@@ -7,9 +7,21 @@ import { ScrambleText } from "./ScrambleText";
 type TopFooterProps = {
   /** トップの起動シーケンス完了後は true。未指定は常に ON 表示（他ページ用） */
   bootComplete?: boolean;
+  /**
+   * スイッチ OFF の点滅アニメーション終了時（CSS animationend）。
+   * HomeBootShell がグリッド表示と同期させるために渡す。
+   */
+  onBootSequenceEnd?: () => void;
 };
 
-export const TopFooter = ({ bootComplete = true }: TopFooterProps) => {
+function isSwitchOffBlinkAnimation(name: string) {
+  return name === "switch-off-blink" || name.endsWith("switch-off-blink");
+}
+
+export const TopFooter = ({
+  bootComplete = true,
+  onBootSequenceEnd,
+}: TopFooterProps) => {
   return (
     <footer>
       <div className="layout-grid items-start whitespace-nowrap">
@@ -32,19 +44,25 @@ export const TopFooter = ({ bootComplete = true }: TopFooterProps) => {
             alt=""
             width={24}
             height={24}
-            className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-500 ease-out ${
+            className={`absolute inset-0 h-full w-full object-contain ${
               bootComplete
                 ? "opacity-0"
                 : "opacity-100 switch-off-blink"
             }`}
             aria-hidden="true"
+            onAnimationEnd={(e) => {
+              if (bootComplete) return;
+              if (!onBootSequenceEnd) return;
+              if (!isSwitchOffBlinkAnimation(e.animationName)) return;
+              onBootSequenceEnd();
+            }}
           />
           <Image
             src="/icon/icon-switch-on.svg"
             alt=""
             width={24}
             height={24}
-            className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-500 ease-out ${
+            className={`absolute inset-0 h-full w-full object-contain ${
               bootComplete ? "opacity-100" : "opacity-0"
             }`}
             aria-hidden="true"

@@ -2,6 +2,8 @@
 
 import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
+import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
+import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 
 const FALLBACK_IMAGES = [
   "/images/works-1.png",
@@ -196,10 +198,12 @@ function GridCopy({
   variant,
   urls,
   innerRef,
+  cellFlash,
 }: {
   variant: 1 | 2;
   urls: string[];
   innerRef?: React.RefObject<HTMLDivElement | null>;
+  cellFlash?: boolean;
 }) {
   const cfg = variant === 1 ? GRID_CYCLE1 : GRID_CYCLE2;
 
@@ -222,13 +226,8 @@ function GridCopy({
           ? "/icon/works-mask-big.svg"
           : "/works-mask.svg";
 
-        return (
-          <div
-            key={`${variant}-${area.name}`}
-            className="relative isolate aspect-[268/204] overflow-hidden md:aspect-[360/274]"
-            style={{ gridArea: area.name }}
-          >
-            {/* 写真とマスクを同じ box に対して object-cover で合わせる（元画像のアスペクト比が変わっても枠に対して同じクロップになる） */}
+        const media = (
+          <>
             <Image
               src={src}
               alt=""
@@ -244,6 +243,20 @@ function GridCopy({
               draggable={false}
               className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none"
             />
+          </>
+        );
+
+        return (
+          <div
+            key={`${variant}-${area.name}`}
+            className="relative isolate aspect-[268/204] overflow-hidden md:aspect-[360/274]"
+            style={{ gridArea: area.name }}
+          >
+            {cellFlash ? (
+              <AstroidRevealCell>{media}</AstroidRevealCell>
+            ) : (
+              media
+            )}
           </div>
         );
       })}
@@ -251,9 +264,17 @@ function GridCopy({
   );
 }
 
-export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
+export function TopGrid({
+  cmsItems,
+  bootComplete,
+}: {
+  cmsItems: WorkItem[];
+  bootComplete: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cycleMeasureRef = useRef<HTMLDivElement>(null);
+
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const baseUrls = useMemo(() => buildThumbnailUrls(cmsItems), [cmsItems]);
 
@@ -267,6 +288,7 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
   );
 
   useEffect(() => {
+    if (!bootComplete) return;
     const container = containerRef.current;
     const cycle = cycleMeasureRef.current;
     if (!container || !cycle) return;
@@ -306,24 +328,9 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
     const ro = new ResizeObserver(updateAnimation);
     ro.observe(cycle);
     return () => ro.disconnect();
-  }, []);
+  }, [bootComplete]);
 
-  const tripleBlock = (
-    <>
-      {urlsByBlock.map((row, blockIndex) => (
-        <div
-          key={blockIndex}
-          className="flex shrink-0"
-          style={{ gap: GRID_GAP_PX }}
-        >
-          <GridCopy variant={1} urls={row.cycle1} />
-          <GridCopy variant={2} urls={row.cycle2} />
-        </div>
-      ))}
-    </>
-  );
-
-  return (
+  const renderScrollStrip = (cellFlash: boolean) => (
     <div
       ref={containerRef}
       className="flex w-max max-w-none shrink-0"
@@ -334,11 +341,69 @@ export function TopGrid({ cmsItems }: { cmsItems: WorkItem[] }) {
         className="flex shrink-0"
         style={{ gap: GRID_GAP_PX }}
       >
-        {tripleBlock}
+        {urlsByBlock.map((row, blockIndex) => (
+          <div
+            key={blockIndex}
+            className="flex shrink-0"
+            style={{ gap: GRID_GAP_PX }}
+          >
+            <GridCopy
+              variant={1}
+              urls={row.cycle1}
+              cellFlash={cellFlash}
+            />
+            <GridCopy
+              variant={2}
+              urls={row.cycle2}
+              cellFlash={cellFlash}
+            />
+          </div>
+        ))}
       </div>
       <div className="flex shrink-0" style={{ gap: GRID_GAP_PX }}>
-        {tripleBlock}
+        {urlsByBlock.map((row, blockIndex) => (
+          <div
+            key={blockIndex}
+            className="flex shrink-0"
+            style={{ gap: GRID_GAP_PX }}
+          >
+            <GridCopy
+              variant={1}
+              urls={row.cycle1}
+              cellFlash={cellFlash}
+            />
+            <GridCopy
+              variant={2}
+              urls={row.cycle2}
+              cellFlash={cellFlash}
+            />
+          </div>
+        ))}
       </div>
+    </div>
+  );
+
+  if (!bootComplete) {
+    return <div className="absolute inset-0 bg-black" aria-hidden />;
+  }
+
+  const gridBlock = (cellFlash: boolean) => (
+    <div className="flex min-w-0 flex-col justify-end">
+      {renderScrollStrip(cellFlash)}
+    </div>
+  );
+
+  if (prefersReducedMotion) {
+    return (
+      <div className="relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden">
+        {gridBlock(false)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden">
+      <AstroidFlashProvider>{gridBlock(true)}</AstroidFlashProvider>
     </div>
   );
 }
