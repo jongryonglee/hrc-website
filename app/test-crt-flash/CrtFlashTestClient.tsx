@@ -13,7 +13,7 @@ import { ASTROID_PATH_SLIM_LIGHT_100 } from "@/app/lib/astroidPath";
 
 const SAMPLE_SRC = "/favicon.png";
 
-const DURATION_SEC = 8;
+const DURATION_SEC = 0.5;
 
 const CENTER_CORE_MS = 280;
 const LINE_FOLLOW_MS = 42;
@@ -28,26 +28,17 @@ const POP_SCALE_X_START = 0.08;
 const POP_SCALE_Y_START = 0.012;
 const POP_SCALE_PEAK_X = 1;
 const POP_SCALE_PEAK = 0.4;
-const POP_SCALE_SHRINK = 0.02;
 
 const MASK_PAD = 20000;
 const MASK_ORIGIN = 50 - MASK_PAD / 2;
 
 const MASK_CLOSED_SY = 0;
 const MAIN_MS = DURATION_SEC * 1000;
-/** マスク縦開き 0→1 にかける時間（ms）— ここだけで速度調整 */
 const MASK_EXPAND_MS = 200;
-/** プチュン〜マスクが開き切るまで */
 const TOTAL_MS = MAIN_MS;
 
 function centerScaleTransform(sx: number, sy: number) {
   return `translate(50 50) scale(${sx} ${sy}) translate(-50 -50)`;
-}
-
-function lineBeamTransform(sx: number, sy: number) {
-  const x = Number.isFinite(sx) ? sx : 0;
-  const y = Number.isFinite(sy) ? sy : LINE_Y_MIN;
-  return `translate(50 50) scale(${x} ${y}) translate(-50 -50)`;
 }
 
 function centerLightState(localT: number): {
@@ -124,13 +115,24 @@ function maskExpandScales(u: number): [number, number] {
   return [1, syEase];
 }
 
+function mergedHoleFlash(localT: number): { sx: number; sy: number } {
+  const center = centerLightState(localT);
+  const line = horizontalLineState(localT);
+  const sxHole = Math.max(center.sx, line.sx);
+  const syHole = Math.max(
+    center.sy,
+    line.opacity > 0.02 ? LINE_Y_MIN : 0,
+  );
+  return { sx: sxHole, sy: syHole };
+}
+
+const FLASH_END_SY = mergedHoleFlash(Math.max(0, FLASH_MS - 0.001)).sy;
+
 export function CrtFlashTestClient() {
   const holeMaskId = useId().replace(/:/g, "");
   const maskOverlayRef = useRef<HTMLDivElement>(null);
-  const holeGroupRef = useRef<SVGGElement>(null);
-  const popLayerRef = useRef<HTMLDivElement>(null);
-  const popGroupRef = useRef<SVGGElement>(null);
-  const popLineGroupRef = useRef<SVGGElement>(null);
+  const holeGroupAstroidRef = useRef<SVGGElement>(null);
+  const holeGroupRectRef = useRef<SVGGElement>(null);
   const rafRef = useRef<number | null>(null);
 
   const stopAnimation = useCallback(() => {
@@ -142,38 +144,26 @@ export function CrtFlashTestClient() {
 
   const play = useCallback(() => {
     const mask = maskOverlayRef.current;
-    const hole = holeGroupRef.current;
-    const pop = popLayerRef.current;
-    const popG = popGroupRef.current;
-    const lineG = popLineGroupRef.current;
-    if (!mask || !hole || !pop || !popG || !lineG) return;
+    const holeA = holeGroupAstroidRef.current;
+    const holeR = holeGroupRectRef.current;
+    if (!mask || !holeA || !holeR) return;
 
     stopAnimation();
 
     mask.style.visibility = "visible";
     mask.style.opacity = "1";
-    hole.removeAttribute("style");
-    setHoleScale(hole, 1, MASK_CLOSED_SY);
-
-    pop.style.visibility = "visible";
-    pop.style.opacity = "1";
-    pop.style.filter = "brightness(1.24) blur(0.58px)";
-    popG.removeAttribute("style");
-    popG.removeAttribute("opacity");
-    lineG.removeAttribute("style");
-    lineG.setAttribute("opacity", "0");
-    lineG.setAttribute("transform", lineBeamTransform(0, 0));
-    setHoleScale(popG, POP_SCALE_X_START, POP_SCALE_Y_START);
+    holeA.removeAttribute("style");
+    holeR.removeAttribute("style");
+    setHoleScale(holeA, 1, MASK_CLOSED_SY);
+    setHoleScale(holeR, 1, MASK_CLOSED_SY);
 
     const startMs = performance.now();
 
     const tick = (now: number) => {
-      const popEl = popLayerRef.current;
-      const popGroup = popGroupRef.current;
-      const lineG = popLineGroupRef.current;
-      const holeEl = holeGroupRef.current;
+      const holeAst = holeGroupAstroidRef.current;
+      const holeRect = holeGroupRectRef.current;
       const maskEl = maskOverlayRef.current;
-      if (!popEl || !popGroup || !lineG || !holeEl || !maskEl) {
+      if (!holeAst || !holeRect || !maskEl) {
         rafRef.current = null;
         return;
       }
@@ -181,38 +171,22 @@ export function CrtFlashTestClient() {
       const elapsed = now - startMs;
 
       if (elapsed < FLASH_MS) {
-        setHoleScale(holeEl, 1, MASK_CLOSED_SY);
-        popEl.style.visibility = "visible";
-        popEl.style.opacity = "1";
-
-        const center = centerLightState(elapsed);
-        setHoleScale(popGroup, center.sx, center.sy);
-        popGroup.setAttribute("opacity", String(center.opacity));
-
-        const line = horizontalLineState(elapsed);
-        lineG.setAttribute("transform", lineBeamTransform(line.sx, line.sy));
-        lineG.setAttribute("opacity", String(line.opacity));
-
-        const glow = Math.min(1, elapsed / 160);
-        const br = 1.22 + 0.12 * glow;
-        const bl = 0.56 + 0.14 * glow;
-        popEl.style.filter = `brightness(${br}) blur(${bl}px)`;
+        const { sx, sy } = mergedHoleFlash(elapsed);
+        setHoleScale(holeAst, sx, sy);
+        setHoleScale(holeRect, 1, MASK_CLOSED_SY);
       } else {
         const uMask = clamp01((elapsed - FLASH_MS) / MASK_EXPAND_MS);
-        const [hx, hy] = maskExpandScales(uMask);
-        setHoleScale(holeEl, hx, hy);
-        setHoleScale(popGroup, POP_SCALE_SHRINK, POP_SCALE_SHRINK);
-        lineG.setAttribute("transform", lineBeamTransform(0, 0));
-        popGroup.removeAttribute("opacity");
-        lineG.setAttribute("opacity", "0");
-        popEl.style.visibility = "hidden";
-        popEl.style.opacity = "0";
-        popEl.style.filter = "";
+        const [, syEase] = maskExpandScales(uMask);
+        const sy =
+          FLASH_END_SY + (1 - FLASH_END_SY) * syEase;
+        setHoleScale(holeAst, 1, MASK_CLOSED_SY);
+        setHoleScale(holeRect, 1, sy);
       }
 
       if (elapsed >= TOTAL_MS) {
         rafRef.current = null;
-        setHoleScale(holeEl, 1, 1);
+        setHoleScale(holeAst, 1, MASK_CLOSED_SY);
+        setHoleScale(holeRect, 1, 1);
         maskEl.style.visibility = "hidden";
         maskEl.style.opacity = "0";
         return;
@@ -225,22 +199,15 @@ export function CrtFlashTestClient() {
   }, [stopAnimation]);
 
   useLayoutEffect(() => {
-    const hole = holeGroupRef.current;
-    const popG = popGroupRef.current;
-    const lineG = popLineGroupRef.current;
-    if (hole) {
-      hole.removeAttribute("style");
-      setHoleScale(hole, 1, MASK_CLOSED_SY);
+    const a = holeGroupAstroidRef.current;
+    const r = holeGroupRectRef.current;
+    if (a) {
+      a.removeAttribute("style");
+      setHoleScale(a, 1, MASK_CLOSED_SY);
     }
-    if (popG) {
-      popG.removeAttribute("style");
-      popG.removeAttribute("opacity");
-      setHoleScale(popG, POP_SCALE_X_START, POP_SCALE_Y_START);
-    }
-    if (lineG) {
-      lineG.removeAttribute("style");
-      lineG.setAttribute("opacity", "0");
-      lineG.setAttribute("transform", lineBeamTransform(0, 0));
+    if (r) {
+      r.removeAttribute("style");
+      setHoleScale(r, 1, MASK_CLOSED_SY);
     }
   }, []);
 
@@ -262,34 +229,6 @@ export function CrtFlashTestClient() {
             priority
             sizes="(max-width: 520px) 90vw, 520px"
           />
-        </div>
-        <div ref={popLayerRef} className={styles.popLayer} aria-hidden>
-          <svg
-            className={styles.popSvg}
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-          >
-            <g ref={popLineGroupRef} opacity={0} transform={lineBeamTransform(0, 0)}>
-              <rect
-                x="1"
-                y="49.35"
-                width="98"
-                height="0.85"
-                fill="#ffffff"
-                opacity={0.92}
-                shapeRendering="crispEdges"
-              />
-            </g>
-            <g
-              ref={popGroupRef}
-              transform={centerScaleTransform(
-                POP_SCALE_X_START,
-                POP_SCALE_Y_START,
-              )}
-            >
-              <path d={ASTROID_PATH_SLIM_LIGHT_100} fill="#ffffff" />
-            </g>
-          </svg>
         </div>
         <div ref={maskOverlayRef} className={styles.maskOverlay} aria-hidden>
           <svg
@@ -315,7 +254,13 @@ export function CrtFlashTestClient() {
                   fill="white"
                 />
                 <g
-                  ref={holeGroupRef}
+                  ref={holeGroupAstroidRef}
+                  transform={centerScaleTransform(1, MASK_CLOSED_SY)}
+                >
+                  <path d={ASTROID_PATH_SLIM_LIGHT_100} fill="black" />
+                </g>
+                <g
+                  ref={holeGroupRectRef}
                   transform={centerScaleTransform(1, MASK_CLOSED_SY)}
                 >
                   <rect x="0" y="0" width="100" height="100" fill="black" />
@@ -339,8 +284,9 @@ export function CrtFlashTestClient() {
       </div>
 
       <p className={styles.note}>
-        マスク縦開きは <code>MASK_EXPAND_MS = {MASK_EXPAND_MS}</code> ms
-        のみで管理。フラッシュ約 {FLASH_MS}ms のあと、その時間で sy が 0→1。
+        フラッシュはアストロイド抜き、展開は従来どおり全面矩形抜き（
+        <code>sx = 1</code> のまま <code>sy</code> のみ）。展開{" "}
+        <code>MASK_EXPAND_MS = {MASK_EXPAND_MS}</code> ms。
       </p>
     </div>
   );

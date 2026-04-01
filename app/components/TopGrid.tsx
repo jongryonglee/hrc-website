@@ -383,27 +383,38 @@ export function TopGrid({
     </div>
   );
 
-  if (!bootComplete) {
-    return <div className="absolute inset-0 bg-black" aria-hidden />;
-  }
-
   const gridBlock = (cellFlash: boolean) => (
     <div className="flex min-w-0 flex-col justify-end">
       {renderScrollStrip(cellFlash)}
     </div>
   );
 
+  /** ブート前もグリッドで高さを確保し、黒オーバーのみで隠す（空の黒画面だと CLS が大きい） */
+  const bootOverlay =
+    !bootComplete ? (
+      <div
+        className="pointer-events-none absolute inset-0 z-10 bg-black"
+        aria-hidden
+      />
+    ) : null;
+
   if (prefersReducedMotion) {
     return (
       <div className="relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden">
         {gridBlock(false)}
+        {bootOverlay}
       </div>
     );
   }
 
   return (
     <div className="relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden">
-      <AstroidFlashProvider>{gridBlock(true)}</AstroidFlashProvider>
+      {bootComplete ? (
+        <AstroidFlashProvider>{gridBlock(true)}</AstroidFlashProvider>
+      ) : (
+        gridBlock(false)
+      )}
+      {bootOverlay}
     </div>
   );
 }

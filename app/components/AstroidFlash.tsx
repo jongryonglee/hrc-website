@@ -13,7 +13,7 @@ import {
 import { ASTROID_PATH_SLIM_LIGHT_100 } from "@/app/lib/astroidPath";
 import styles from "./AstroidRevealCell.module.css";
 
-const DURATION_SEC = 8;
+const DURATION_SEC = 0.5;
 /** 中央の光（パルス）の長さ: 出現→少し拡大→縮小→消滅 */
 const CENTER_CORE_MS = 280;
 /** 横線: 光の後を追う遅延 → 水平に伸びる → フェードアウト（縦方向の展開はしない） */
@@ -31,13 +31,12 @@ const POP_SCALE_X_START = 0.08;
 const POP_SCALE_Y_START = 0.012;
 const POP_SCALE_PEAK_X = 1;
 const POP_SCALE_PEAK = 0.4;
-const POP_SCALE_SHRINK = 0.02;
 const MAIN_MS = DURATION_SEC * 1000;
 /**
  * フラッシュ後、マスクの縦スケールが 0→1 になるまでの時間（短く調整しやすい）
  * 開き終わってから TOTAL_CELL_MS までは穴は開いたまま
  */
-const MASK_EXPAND_MS = 500;
+const MASK_EXPAND_MS = 200;
 /** プチュン〜マスクが開き切るまで */
 const TOTAL_CELL_MS = MAIN_MS;
 /** 各セルの開始を 0〜この値 ms の範囲でランダムにずらす */
@@ -50,13 +49,6 @@ const MASK_CLOSED_SY = 0;
 
 function centerScaleTransform(sx: number, sy: number) {
   return `translate(50 50) scale(${sx} ${sy}) translate(-50 -50)`;
-}
-
-/** 横スリット: 水平 sx × 垂直 sy（縦は細い線から上下へ） */
-function lineBeamTransform(sx: number, sy: number) {
-  const x = Number.isFinite(sx) ? sx : 0;
-  const y = Number.isFinite(sy) ? sy : LINE_Y_MIN;
-  return `translate(50 50) scale(${x} ${y}) translate(-50 -50)`;
 }
 
 /** 中央の光: 出現 → 少し拡大 → 縮小 → 消滅 */
@@ -136,12 +128,27 @@ function maskExpandScales(u: number): [number, number] {
   return [1, syEase];
 }
 
+/** プチュンもマスク穴の scale のみ（白レイヤは使わない）。中央パルスと横スリットを合成 */
+function mergedHoleFlash(localT: number): { sx: number; sy: number } {
+  const center = centerLightState(localT);
+  const line = horizontalLineState(localT);
+  const sxHole = Math.max(center.sx, line.sx);
+  const syHole = Math.max(
+    center.sy,
+    line.opacity > 0.02 ? LINE_Y_MIN : 0,
+  );
+  return { sx: sxHole, sy: syHole };
+}
+
+/** フラッシュ終了直前の縦（矩形マスク展開の sy 起点。sx は常に 1） */
+const FLASH_END_SY = mergedHoleFlash(Math.max(0, FLASH_MS - 0.001)).sy;
+
 export type AstroidFlashCellRefs = {
-  popLayer: HTMLDivElement;
   mask: HTMLDivElement;
-  popGroup: SVGGElement;
-  popLineGroup: SVGGElement;
-  holeGroup: SVGGElement;
+  /** フラッシュ中のみ。アストロイド形の抜き */
+  holeGroupAstroid: SVGGElement;
+  /** 展開フェーズ。従来どおり全面矩形の抜き */
+  holeGroupRect: SVGGElement;
 };
 
 type CellEntry = AstroidFlashCellRefs & {
@@ -154,76 +161,44 @@ type RegisterCell = (refs: AstroidFlashCellRefs) => () => void;
 const AstroidFlashRegisterContext = createContext<RegisterCell | null>(null);
 
 function applyCellForLocalT(c: CellEntry, localT: number) {
-  const { mask, popLayer, holeGroup, popGroup, popLineGroup } = c;
+  const { mask, holeGroupAstroid, holeGroupRect } = c;
 
   if (localT >= TOTAL_CELL_MS) {
     mask.style.visibility = "hidden";
     mask.style.opacity = "0";
-    setHoleScale(holeGroup, 1, 1);
-    popLayer.style.visibility = "hidden";
-    popLayer.style.opacity = "0";
-    popLayer.style.filter = "";
-    popLineGroup.setAttribute("transform", lineBeamTransform(0, 0));
-    popGroup.removeAttribute("opacity");
-    popLineGroup.setAttribute("opacity", "0");
+    setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+    setHoleScale(holeGroupRect, 1, 1);
     return;
   }
 
   if (localT < 0) {
     mask.style.visibility = "visible";
     mask.style.opacity = "1";
-    holeGroup.removeAttribute("style");
-    setHoleScale(holeGroup, 1, MASK_CLOSED_SY);
-    popLayer.style.visibility = "hidden";
-    popLayer.style.opacity = "0";
-    popLayer.style.filter = "";
-    popGroup.removeAttribute("style");
-    popLineGroup.removeAttribute("style");
-    setHoleScale(popGroup, POP_SCALE_X_START, POP_SCALE_Y_START);
-    popLineGroup.setAttribute("transform", lineBeamTransform(0, 0));
-    popGroup.removeAttribute("opacity");
-    popLineGroup.setAttribute("opacity", "0");
+    holeGroupAstroid.removeAttribute("style");
+    holeGroupRect.removeAttribute("style");
+    setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+    setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
     return;
   }
 
   mask.style.visibility = "visible";
   mask.style.opacity = "1";
-  holeGroup.removeAttribute("style");
+  holeGroupAstroid.removeAttribute("style");
+  holeGroupRect.removeAttribute("style");
 
   if (localT < FLASH_MS) {
-    setHoleScale(holeGroup, 1, MASK_CLOSED_SY);
-    popLayer.style.visibility = "visible";
-    popLayer.style.opacity = "1";
-
-    const center = centerLightState(localT);
-    setHoleScale(popGroup, center.sx, center.sy);
-    popGroup.setAttribute("opacity", String(center.opacity));
-
-    const line = horizontalLineState(localT);
-    popLineGroup.setAttribute(
-      "transform",
-      lineBeamTransform(line.sx, line.sy),
-    );
-    popLineGroup.setAttribute("opacity", String(line.opacity));
-
-    const glow = Math.min(1, localT / 160);
-    const br = 1.22 + 0.12 * glow;
-    const bl = 0.56 + 0.14 * glow;
-    popLayer.style.filter = `brightness(${br}) blur(${bl}px)`;
+    const { sx, sy } = mergedHoleFlash(localT);
+    setHoleScale(holeGroupAstroid, sx, sy);
+    setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
     return;
   }
 
   const uMask = clamp01((localT - FLASH_MS) / MASK_EXPAND_MS);
-  const [hsx, hsy] = maskExpandScales(uMask);
-  setHoleScale(holeGroup, hsx, hsy);
-
-  setHoleScale(popGroup, POP_SCALE_SHRINK, POP_SCALE_SHRINK);
-  popLineGroup.setAttribute("transform", lineBeamTransform(0, LINE_Y_MIN));
-  popGroup.removeAttribute("opacity");
-  popLineGroup.removeAttribute("opacity");
-  popLayer.style.visibility = "hidden";
-  popLayer.style.opacity = "0";
-  popLayer.style.filter = "";
+  const [, syEase] = maskExpandScales(uMask);
+  const sy =
+    FLASH_END_SY + (1 - FLASH_END_SY) * syEase;
+  setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+  setHoleScale(holeGroupRect, 1, sy);
 }
 
 export function AstroidFlashProvider({ children }: { children: React.ReactNode }) {
@@ -299,40 +274,29 @@ export function AstroidFlashProvider({ children }: { children: React.ReactNode }
 export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
   const register = useContext(AstroidFlashRegisterContext);
   const holeMaskId = useId().replace(/:/g, "");
-  const popLayerRef = useRef<HTMLDivElement>(null);
   const maskRef = useRef<HTMLDivElement>(null);
-  const popGroupRef = useRef<SVGGElement>(null);
-  const popLineGroupRef = useRef<SVGGElement>(null);
-  const holeGroupRef = useRef<SVGGElement>(null);
+  const holeGroupAstroidRef = useRef<SVGGElement>(null);
+  const holeGroupRectRef = useRef<SVGGElement>(null);
 
   useLayoutEffect(() => {
     if (!register) return;
-    const popLayer = popLayerRef.current;
     const mask = maskRef.current;
-    const popGroup = popGroupRef.current;
-    const popLineGroup = popLineGroupRef.current;
-    const holeGroup = holeGroupRef.current;
-    if (!popLayer || !mask || !popGroup || !popLineGroup || !holeGroup) return;
-    return register({ popLayer, mask, popGroup, popLineGroup, holeGroup });
+    const holeGroupAstroid = holeGroupAstroidRef.current;
+    const holeGroupRect = holeGroupRectRef.current;
+    if (!mask || !holeGroupAstroid || !holeGroupRect) return;
+    return register({ mask, holeGroupAstroid, holeGroupRect });
   }, [register]);
 
   useLayoutEffect(() => {
-    const hole = holeGroupRef.current;
-    const popG = popGroupRef.current;
-    const lineG = popLineGroupRef.current;
-    if (hole) {
-      hole.removeAttribute("style");
-      setHoleScale(hole, 1, MASK_CLOSED_SY);
+    const a = holeGroupAstroidRef.current;
+    const r = holeGroupRectRef.current;
+    if (a) {
+      a.removeAttribute("style");
+      setHoleScale(a, 1, MASK_CLOSED_SY);
     }
-    if (popG) {
-      popG.removeAttribute("style");
-      popG.removeAttribute("opacity");
-      setHoleScale(popG, POP_SCALE_X_START, POP_SCALE_Y_START);
-    }
-    if (lineG) {
-      lineG.removeAttribute("style");
-      lineG.setAttribute("opacity", "0");
-      lineG.setAttribute("transform", lineBeamTransform(0, 0));
+    if (r) {
+      r.removeAttribute("style");
+      setHoleScale(r, 1, MASK_CLOSED_SY);
     }
   }, []);
 
@@ -343,34 +307,6 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
   return (
     <div className={styles.root}>
       <div className={styles.content}>{children}</div>
-      <div ref={popLayerRef} className={styles.popLayer} aria-hidden>
-        <svg
-          className={styles.popSvg}
-          viewBox="0 0 100 100"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <g ref={popLineGroupRef} opacity={0} transform={lineBeamTransform(0, 0)}>
-            <rect
-              x="1"
-              y="49.35"
-              width="98"
-              height="0.85"
-              fill="#ffffff"
-              opacity={0.92}
-              shapeRendering="crispEdges"
-            />
-          </g>
-          <g
-            ref={popGroupRef}
-            transform={centerScaleTransform(
-              POP_SCALE_X_START,
-              POP_SCALE_Y_START,
-            )}
-          >
-            <path d={ASTROID_PATH_SLIM_LIGHT_100} fill="#ffffff" />
-          </g>
-        </svg>
-      </div>
       <div ref={maskRef} className={styles.maskOverlay} aria-hidden>
         <svg
           className={styles.maskSvg}
@@ -395,7 +331,13 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
                 fill="white"
               />
               <g
-                ref={holeGroupRef}
+                ref={holeGroupAstroidRef}
+                transform={centerScaleTransform(1, MASK_CLOSED_SY)}
+              >
+                <path d={ASTROID_PATH_SLIM_LIGHT_100} fill="black" />
+              </g>
+              <g
+                ref={holeGroupRectRef}
                 transform={centerScaleTransform(1, MASK_CLOSED_SY)}
               >
                 <rect x="0" y="0" width="100" height="100" fill="black" />

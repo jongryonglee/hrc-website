@@ -69,5 +69,12 @@ export default async function WorkDetailPage({
       ? ((await client.fetch(WORK_ITEM_QUERY, { id })) as WorkItem)
       : null;
 
-  return <WorkDetailClient data={data} credits={credits} creditNames={creditNames} />;
+  return (
+    <WorkDetailClient
+      key={id}
+      data={data}
+      credits={credits}
+      creditNames={creditNames}
+    />
+  );
 }

@@ -6,6 +6,9 @@ import { ScrambleText } from "../components/ScrambleText";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/** WorkDetailClient と同じキー。一覧から詳細へ行くときだけ CRT 許可 */
+const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
+
 export type WorkItem = {
   _id: string;
   title: string;
@@ -29,6 +32,11 @@ export function WorksPageClient({ initialItems }: Props) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const handleRowClick = (id: string) => {
+    try {
+      sessionStorage.setItem(STORAGE_CRT_FROM_WORKS_LIST, id);
+    } catch {
+      /* private mode 等 */
+    }
     router.push(`/works/${id}`);
   };
 

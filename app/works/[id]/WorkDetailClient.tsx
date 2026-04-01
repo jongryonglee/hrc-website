@@ -12,13 +12,18 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { AstroidFlashProvider, AstroidRevealCell } from "../../components/AstroidFlash";
 import { Header } from "../../components/Header";
 import { isAnimatedGifUrl } from "@/sanity/lib/image";
 import { ScrambleText } from "../../components/ScrambleText";
 import { SoundToggle } from "../../components/SoundToggle";
 
 const STORAGE_ENTER = "workDetailEnterTransition";
+/** transitionTo でセット。遷移先 id と一致するときだけ「内部入場」として CRT を抑止（先に effect が走ってフラグだけ消す事故を防ぐ） */
+const STORAGE_ENTER_TARGET_ID = "workDetailEnterTargetId";
 const STORAGE_LOCK = "workDetailNavLockUntil";
+/** `/works` 一覧から行クリックで「遷移先の作品 id」をセット。CRT は値が現在の data._id と一致するときのみ */
+const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 
 /** 連続遷移防止：この時間はスクロール遷移を受け付けない */
 const NAV_COOLDOWN_MS = 1400;
@@ -53,8 +58,20 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
   const router = useRouter();
   const [exiting, setExiting] = useState(false);
   const [enterActive, setEnterActive] = useState(false);
+  /** CRT: `/works` 一覧からの遷移時のみ。直 URL・ホーム等・作品間 next は false */
+  const [useCrtEnter, setUseCrtEnter] = useState(false);
+  /** sessionStorage 判定までサムネを隠し、CRT と内部入場のどちらかに揃える */
+  const [bootReady, setBootReady] = useState(false);
   const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
+  /** transitionTo の router.push を遅延させるタイマー。アンマウント後に発火すると別ページへ誤遷移するので必ず解除 */
+  const transitionPushTimerRef = useRef<number | null>(null);
+
+  /** クライアント遷移で同一インスタンスが再利用されると transitionTo の exiting が残るためリセット */
+  useEffect(() => {
+    exitingRef.current = false;
+    setExiting(false);
+  }, [data?._id]);
 
   useLayoutEffect(() => {
     const lockStr = sessionStorage.getItem(STORAGE_LOCK);
@@ -66,33 +83,88 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
       sessionStorage.removeItem(STORAGE_LOCK);
     }
 
+    if (!data?._id) {
+      setBootReady(true);
+      return;
+    }
+
     const enter = sessionStorage.getItem(STORAGE_ENTER);
-    if (enter === "1") {
+    const targetId = sessionStorage.getItem(STORAGE_ENTER_TARGET_ID);
+    const isSequentialEnter = enter === "1" && targetId === data._id;
+
+    if (isSequentialEnter) {
       sessionStorage.removeItem(STORAGE_ENTER);
-      // 遷移直後の入場アニメを最初のペイント前に適用（queueMicrotask より描画回数が少ない）
+      sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
+      sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
+      // next / prev / transitionTo からの遷移: CRT は再生しない（CSS 入場のみ）
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage は描画外の同期読み取り
       setEnterActive(true);
+      setUseCrtEnter(false);
+    } else {
+      setEnterActive(false);
+      const stored = sessionStorage.getItem(STORAGE_CRT_FROM_WORKS_LIST);
+      const fromWorksList = stored === data._id;
+      const allowCrt =
+        fromWorksList &&
+        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setUseCrtEnter(allowCrt);
     }
-  }, []);
+    setBootReady(true);
+  }, [data?._id]);
+
+  /** layout では sessionStorage を消さない（Strict Mode の二重マウントでフラグが先に消えて CRT が死ぬ）。次フレームで消す */
+  useEffect(() => {
+    if (!data?._id) return;
+    const stored = sessionStorage.getItem(STORAGE_CRT_FROM_WORKS_LIST);
+    if (stored !== data._id) return;
+    const id = window.setTimeout(() => {
+      try {
+        sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
+      } catch {
+        /* ignore */
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [data?._id]);
 
   const transitionTo = useCallback(
     (href: string) => {
       if (exitingRef.current) return;
       if (Date.now() < lockUntilRef.current) return;
 
+      if (transitionPushTimerRef.current) {
+        clearTimeout(transitionPushTimerRef.current);
+        transitionPushTimerRef.current = null;
+      }
+
       exitingRef.current = true;
       const until = Date.now() + NAV_COOLDOWN_MS;
       lockUntilRef.current = until;
       sessionStorage.setItem(STORAGE_LOCK, String(until));
       sessionStorage.setItem(STORAGE_ENTER, "1");
+      const nextId = href.match(/\/works\/([^/?#]+)/)?.[1];
+      if (nextId) {
+        sessionStorage.setItem(STORAGE_ENTER_TARGET_ID, nextId);
+      }
       setExiting(true);
 
-      window.setTimeout(() => {
+      transitionPushTimerRef.current = window.setTimeout(() => {
+        transitionPushTimerRef.current = null;
         router.push(href);
       }, EXIT_MS);
     },
     [router]
   );
+
+  useEffect(() => {
+    return () => {
+      if (transitionPushTimerRef.current) {
+        clearTimeout(transitionPushTimerRef.current);
+        transitionPushTimerRef.current = null;
+        exitingRef.current = false;
+      }
+    };
+  }, []);
 
   /** 複数件あるときだけ前後へ遷移（1件のみのときは nextId / prevId が自分自身になる） */
   const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
@@ -124,6 +196,26 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     tryNavigateNextRef.current = tryNavigateNext;
     tryNavigatePrevRef.current = tryNavigatePrev;
   }, [tryNavigateNext, tryNavigatePrev]);
+
+  /**
+   * 入力・IME 以外で Backspace → 履歴バック（Chrome 向け補助）。
+   * 前後作品があるときはホイール／タッチで遷移するため登録しない（Backspace と縦スライドの意図がぶつかる）。
+   */
+  useEffect(() => {
+    if (sequentialNav) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Backspace" || e.isComposing) return;
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      if (el.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (el.isContentEditable) return;
+      e.preventDefault();
+      router.back();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [router, sequentialNav]);
 
   useEffect(() => {
     if (!sequentialNav) return;
@@ -190,7 +282,7 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
 
   const imgAnim = exiting
     ? "work-detail-exit"
-    : enterActive
+    : enterActive && !useCrtEnter
       ? "work-detail-enter-img"
       : "";
 
@@ -239,9 +331,15 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
           className="md:[grid-area:1/1] md:z-0 md:flex md:items-center md:justify-center"
         >
           <div
-            className={`relative aspect-[360/274] overflow-hidden w-[95vw] mx-auto md:w-auto md:mx-0 md:h-[80vh] ${imgAnim}`}
+            className={`relative aspect-[360/274] overflow-hidden w-[95vw] mx-auto md:w-auto md:mx-0 md:h-[80vh] ${imgAnim} ${!bootReady ? "opacity-0" : ""}`}
           >
-            {thumbnailContent}
+            {bootReady && useCrtEnter ? (
+              <AstroidFlashProvider>
+                <AstroidRevealCell>{thumbnailContent}</AstroidRevealCell>
+              </AstroidFlashProvider>
+            ) : (
+              thumbnailContent
+            )}
           </div>
         </div>
 
