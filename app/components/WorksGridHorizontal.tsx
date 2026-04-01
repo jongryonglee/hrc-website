@@ -25,9 +25,7 @@ const TOTAL_ITEMS = ITEMS_PER_ROW * ROWS; // 20個
 const MOBILE_COLS = 4;
 const MOBILE_ROWS = 4;
 const MOBILE_MAX_ITEMS = MOBILE_COLS * MOBILE_ROWS; // モバイルは3行 x 4列
-const ITEM_WIDTH = 268;
 const GAP = 17;
-const COLUMN_WIDTH = ITEM_WIDTH + GAP; // 1列分の幅（285px）
 const MOBILE_ITEM_WIDTH = 268;
 const MOBILE_GRID_WIDTH = MOBILE_ITEM_WIDTH * MOBILE_COLS + GAP * (MOBILE_COLS - 1);
 
@@ -69,8 +67,6 @@ export const WorksGridHorizontal = () => {
       ))}
     </div>
   );
-
-  const GRID_WIDTH = ITEM_WIDTH * ITEMS_PER_ROW + GAP * (ITEMS_PER_ROW - 1); // 1408px
 
   return (
     <section className="flex-1 mb-[17px] overflow-y-auto overflow-x-hidden flex flex-col">

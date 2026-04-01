@@ -1,21 +1,15 @@
-import { Header } from "../components/Header";
-import { GraphicDesignGrid } from "../components/GraphicDesignGrid";
-import { Footer } from "../components/Footer";
-import { client, hasProjectId } from "@/sanity/lib/client";
+import type { GraphicDesignListItem } from "@/app/lib/cmsTypes";
+import { fetchSanityOr } from "@/sanity/lib/fetch";
 import { GRAPHIC_DESIGN_ITEMS_QUERY } from "@/sanity/lib/queries";
-
-type GraphicDesignItem = {
-  _id: string;
-  title: string;
-  category: "event-flier" | "cover-art" | "gino-goods";
-  thumbnailUrl?: string | null;
-};
+import { Footer } from "../components/Footer";
+import { GraphicDesignGrid } from "../components/GraphicDesignGrid";
+import { Header } from "../components/Header";
 
 export default async function GraphicDesignPage() {
-  const sourceItems =
-    hasProjectId && client
-      ? ((await client.fetch(GRAPHIC_DESIGN_ITEMS_QUERY)) as GraphicDesignItem[])
-      : [];
+  const sourceItems = await fetchSanityOr<GraphicDesignListItem[]>(
+    GRAPHIC_DESIGN_ITEMS_QUERY,
+    [],
+  );
   const counts = sourceItems.reduce(
     (acc, item) => {
       acc.all += 1;
@@ -57,26 +51,26 @@ export default async function GraphicDesignPage() {
     <div className="flex min-h-full flex-col flex-1">
       <Header />
 
-        {/* Title & summary */}
-        <section>
-          <div className="layout-grid">
-            {/* (Graphic Design): 上から2グリッド分 */}
-            <div className="grid-full [grid-row:span_4] md:[grid-row:span_5]">
-              <h1>(Graphic Design)</h1>
-            </div>
-            {/* all8...: 2グリッド分を使い、上に半グリッド／下に半グリッドのスペース */}
-            <div className="grid-full [grid-row:span_2]">
-              <p className="whitespace-nowrap">{summaryText}</p>
-            </div>
+      {/* Title & summary */}
+      <section>
+        <div className="layout-grid">
+          {/* (Graphic Design): 上から2グリッド分 */}
+          <div className="grid-full [grid-row:span_4] md:[grid-row:span_5]">
+            <h1>(Graphic Design)</h1>
           </div>
-        </section>
+          {/* all8...: 2グリッド分を使い、上に半グリッド／下に半グリッドのスペース */}
+          <div className="grid-full [grid-row:span_2]">
+            <p className="whitespace-nowrap">{summaryText}</p>
+          </div>
+        </div>
+      </section>
 
-        <GraphicDesignGrid items={graphicDesignItems} />
-        <section>
-          <div className="layout-grid">
-            <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
-          </div>
-        </section>
+      <GraphicDesignGrid items={graphicDesignItems} />
+      <section>
+        <div className="layout-grid">
+          <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
+        </div>
+      </section>
       <div className="mt-auto">
         <Footer />
       </div>

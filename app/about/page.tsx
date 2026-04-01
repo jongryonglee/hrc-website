@@ -1,6 +1,8 @@
-import { client, hasProjectId } from "@/sanity/lib/client";
+import type { ProducedWorkItem } from "@/app/lib/cmsTypes";
+import { hasProjectId } from "@/sanity/lib/client";
+import { fetchSanityOr } from "@/sanity/lib/fetch";
 import { PRODUCED_WORK_ITEMS_QUERY } from "@/sanity/lib/queries";
-import { AboutPageClient, type ProducedWorkItem } from "./AboutPageClient";
+import { AboutPageClient } from "./AboutPageClient";
 
 const PLACEHOLDER_PRODUCED_WORKS: ProducedWorkItem[] = [
   {
@@ -16,16 +18,13 @@ const PLACEHOLDER_PRODUCED_WORKS: ProducedWorkItem[] = [
 export default async function AboutPage() {
   let producedWorks: ProducedWorkItem[];
 
-  if (!hasProjectId || !client) {
+  if (!hasProjectId) {
     producedWorks = PLACEHOLDER_PRODUCED_WORKS;
   } else {
-    try {
-      producedWorks = (await client.fetch(
-        PRODUCED_WORK_ITEMS_QUERY
-      )) as ProducedWorkItem[];
-    } catch {
-      producedWorks = [];
-    }
+    producedWorks = await fetchSanityOr<ProducedWorkItem[]>(
+      PRODUCED_WORK_ITEMS_QUERY,
+      [],
+    );
   }
 
   return <AboutPageClient initialProducedWorks={producedWorks} />;

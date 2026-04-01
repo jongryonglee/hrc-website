@@ -2,8 +2,10 @@
 
 import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
-import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
+import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
+import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
 
 const FALLBACK_IMAGES = [
   "/images/works-1.png",
@@ -162,7 +164,7 @@ function buildUrlsForCycle2(base: string[], blockIndex: number): string[] {
 }
 
 /** CMS がなければ a…o 順に、直前と同じフォールバック URL だけ避ける */
-function buildThumbnailUrls(cmsItems: WorkItem[]): string[] {
+function buildThumbnailUrls(cmsItems: TopGridWorkItem[]): string[] {
   const n = FALLBACK_IMAGES.length;
   const out: string[] = [];
   let prev: string | null = null;
@@ -188,11 +190,6 @@ function buildThumbnailUrls(cmsItems: WorkItem[]): string[] {
   }
   return out;
 }
-
-type WorkItem = {
-  _id: string;
-  thumbnailUrl?: string | null;
-};
 
 function GridCopy({
   variant,
@@ -235,6 +232,7 @@ function GridCopy({
               sizes="(max-width: 767px) 268px, 360px"
               className="object-cover object-center"
               draggable={false}
+              unoptimized={nextImageUnoptimized(src)}
             />
             <img
               src={maskSrc}
@@ -268,7 +266,7 @@ export function TopGrid({
   cmsItems,
   bootComplete,
 }: {
-  cmsItems: WorkItem[];
+  cmsItems: TopGridWorkItem[];
   bootComplete: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);

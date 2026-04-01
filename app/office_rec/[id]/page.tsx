@@ -1,16 +1,9 @@
+import type { OfficeRecDetailItem } from "@/app/lib/cmsTypes";
 import { client, hasProjectId } from "@/sanity/lib/client";
+import { fetchSanityOr } from "@/sanity/lib/fetch";
 import { OFFICE_REC_ITEM_QUERY } from "@/sanity/lib/queries";
 import { notFound } from "next/navigation";
 import { OfficeRecDetailClient } from "./OfficeRecDetailClient";
-
-type OfficeRecItem = {
-  _id: string;
-  title: string;
-  artist: string;
-  thumbnailUrl?: string | null;
-  nextId?: string | null;
-  prevId?: string | null;
-};
 
 export default async function OfficeRecDetailPage({
   params,
@@ -23,10 +16,11 @@ export default async function OfficeRecDetailPage({
     notFound();
   }
 
-  const data: OfficeRecItem | null =
-    hasProjectId && client
-      ? ((await client.fetch(OFFICE_REC_ITEM_QUERY, { id })) as OfficeRecItem)
-      : null;
+  const data = await fetchSanityOr<OfficeRecDetailItem | null>(
+    OFFICE_REC_ITEM_QUERY,
+    null,
+    { id },
+  );
 
   if (hasProjectId && client && !data) {
     notFound();

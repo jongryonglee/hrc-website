@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { isAnimatedGifUrl } from "@/sanity/lib/image";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
 
 type GridItem = {
   image: string;
@@ -51,7 +51,7 @@ export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
                 className="h-[80px] w-[80px] object-contain md:h-[135px] md:w-[135px] transition-opacity hover:opacity-70"
                 sizes="(max-width: 767px) 80px, 135px"
                 priority={i === 0}
-                unoptimized={isAnimatedGifUrl(item.image)}
+                unoptimized={nextImageUnoptimized(item.image)}
               />
             </div>
           ))}
@@ -89,7 +89,7 @@ export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
               height={473}
               className="object-contain w-[280px] h-[280px] md:w-[473px] md:h-[473px]"
               sizes="(max-width: 767px) 280px, 473px"
-              unoptimized={isAnimatedGifUrl(selectedItem.image)}
+              unoptimized={nextImageUnoptimized(selectedItem.image)}
             />
           </div>
         </div>

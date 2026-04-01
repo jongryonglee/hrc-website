@@ -1,19 +1,8 @@
-import { client, hasProjectId } from "@/sanity/lib/client";
+import type { WorkDetailItem } from "@/app/lib/cmsTypes";
+import { fetchSanityOr } from "@/sanity/lib/fetch";
 import { WORK_ITEM_QUERY } from "@/sanity/lib/queries";
 import { notFound } from "next/navigation";
 import { WorkDetailClient } from "./WorkDetailClient";
-
-type WorkItem = {
-  _id: string;
-  title: string;
-  artist: string;
-  producer?: string | null;
-  category: "music-video" | "sound-effect";
-  videoUrl: string;
-  thumbnailUrl?: string | null;
-  nextId?: string | null;
-  prevId?: string | null;
-};
 
 const credits = [
   "Prod.",
@@ -64,10 +53,11 @@ export default async function WorkDetailPage({
     notFound();
   }
 
-  const data: WorkItem | null =
-    hasProjectId && client
-      ? ((await client.fetch(WORK_ITEM_QUERY, { id })) as WorkItem)
-      : null;
+  const data = await fetchSanityOr<WorkDetailItem | null>(
+    WORK_ITEM_QUERY,
+    null,
+    { id },
+  );
 
   return (
     <WorkDetailClient

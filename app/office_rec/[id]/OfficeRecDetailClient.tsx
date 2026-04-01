@@ -1,8 +1,5 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import type { MouseEvent } from "react";
 import {
   useCallback,
   useEffect,
@@ -10,9 +7,13 @@ import {
   useRef,
   useState,
 } from "react";
+import type { MouseEvent } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { OfficeRecDetailItem } from "@/app/lib/cmsTypes";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { Header } from "../../components/Header";
-import { isAnimatedGifUrl } from "@/sanity/lib/image";
 import { SoundToggle } from "../../components/SoundToggle";
 
 const STORAGE_ENTER = "officeRecDetailEnterTransition";
@@ -23,17 +24,8 @@ const EXIT_MS = 420;
 
 const WHEEL_NEXT_ON_SCROLL_UP = false;
 
-type OfficeRecItem = {
-  _id: string;
-  title: string;
-  artist: string;
-  thumbnailUrl?: string | null;
-  nextId?: string | null;
-  prevId?: string | null;
-};
-
 type Props = {
-  data: OfficeRecItem | null;
+  data: OfficeRecDetailItem | null;
 };
 
 export function OfficeRecDetailClient({ data }: Props) {
@@ -161,7 +153,7 @@ export function OfficeRecDetailClient({ data }: Props) {
         priority
         sizes="(min-width: 768px) 60vw, 95vw"
         className="object-cover"
-        unoptimized={isAnimatedGifUrl(data.thumbnailUrl)}
+        unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
       />
       <img
         src="/works-mask.svg"

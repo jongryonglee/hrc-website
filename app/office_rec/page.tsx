@@ -1,21 +1,15 @@
-import { Header } from "../components/Header";
+import type { OfficeRecListItem } from "@/app/lib/cmsTypes";
+import { fetchSanityOr } from "@/sanity/lib/fetch";
+import { OFFICE_REC_ITEMS_QUERY } from "@/sanity/lib/queries";
 import { ContentGrid, type GridItem } from "../components/ContentGrid";
 import { Footer } from "../components/Footer";
-import { client, hasProjectId } from "@/sanity/lib/client";
-import { OFFICE_REC_ITEMS_QUERY } from "@/sanity/lib/queries";
-
-type OfficeRecItem = {
-  _id: string;
-  title: string;
-  artist: string;
-  thumbnailUrl?: string | null;
-};
+import { Header } from "../components/Header";
 
 export default async function OfficeRecPage() {
-  const sourceItems =
-    hasProjectId && client
-      ? ((await client.fetch(OFFICE_REC_ITEMS_QUERY)) as OfficeRecItem[])
-      : [];
+  const sourceItems = await fetchSanityOr<OfficeRecListItem[]>(
+    OFFICE_REC_ITEMS_QUERY,
+    [],
+  );
 
   const fallbackThumb = "/images/office-rec-1.png";
 
@@ -41,26 +35,26 @@ export default async function OfficeRecPage() {
     <div className="flex min-h-full flex-col flex-1">
       <Header />
 
-        {/* Title & summary */}
-        <section>
-          <div className="layout-grid">
-            {/* (Office Rec): 上から2グリッド分 */}
-            <div className="grid-full [grid-row:span_6] md:[grid-row:span_5]">
-              <h1>(Office Rec)</h1>
-            </div>
+      {/* Title & summary */}
+      <section>
+        <div className="layout-grid">
+          {/* (Office Rec): 上から2グリッド分 */}
+          <div className="grid-full [grid-row:span_6] md:[grid-row:span_5]">
+            <h1>(Office Rec)</h1>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <ContentGrid
-          items={officeRecItems}
-          rounded={true}
-          imageClassName="object-cover"
-        />
-        <section>
-          <div className="layout-grid">
-            <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
-          </div>
-        </section>
+      <ContentGrid
+        items={officeRecItems}
+        rounded={true}
+        imageClassName="object-cover"
+      />
+      <section>
+        <div className="layout-grid">
+          <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
+        </div>
+      </section>
       <div className="mt-auto">
         <Footer />
       </div>

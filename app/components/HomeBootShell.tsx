@@ -2,16 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
+import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
 import { SWITCH_BOOT_ANIMATION_MS } from "@/app/lib/homeBootTiming";
 import { TopFooter } from "./TopFooter";
 import { TopGrid } from "./TopGrid";
 
-type WorkItem = {
-  _id: string;
-  thumbnailUrl?: string | null;
-};
-
-export function HomeBootShell({ cmsItems }: { cmsItems: WorkItem[] }) {
+export function HomeBootShell({ cmsItems }: { cmsItems: TopGridWorkItem[] }) {
   const [bootDoneByTimer, setBootDoneByTimer] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const bootComplete = prefersReducedMotion || bootDoneByTimer;
