@@ -1,23 +1,16 @@
 "use client";
 
-import { Header } from "../components/Header";
-import { Footer } from "../components/Footer";
-import { ScrambleText } from "../components/ScrambleText";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { WorkListItem } from "@/app/lib/cmsTypes";
+import { Footer } from "../components/Footer";
+import { Header } from "../components/Header";
+import { ScrambleText } from "../components/ScrambleText";
 
-export type WorkItem = {
-  _id: string;
-  title: string;
-  artist: string;
-  producer?: string | null;
-  category: "music-video" | "sound-effect";
-  videoUrl: string;
-  thumbnailUrl?: string | null;
-  label: string;
-  role: string;
-  date: string;
-};
+/** WorkDetailClient と同じキー。一覧から詳細へ行くときだけ CRT 許可 */
+const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
+
+export type WorkItem = WorkListItem;
 
 type Props = {
   initialItems: WorkItem[];
@@ -29,6 +22,11 @@ export function WorksPageClient({ initialItems }: Props) {
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const handleRowClick = (id: string) => {
+    try {
+      sessionStorage.setItem(STORAGE_CRT_FROM_WORKS_LIST, id);
+    } catch {
+      /* private mode 等 */
+    }
     router.push(`/works/${id}`);
   };
 

@@ -14,7 +14,6 @@
 }
 
 html {
-  font-family: Helvetica, Arial, sans-serif;
   font-size: 15px;
   line-height: 1.1;
 }
@@ -22,7 +21,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: inherit;
+  /* layout の geistSans.className がフォントを指定（html の Helvetica 継承で二重指定しない） */
   font-size: inherit;
   line-height: inherit;
 }
@@ -76,6 +75,45 @@ h1 {
 }
 
 .grid-full { grid-column: 1 / -1; }
+
+/* トップ起動時: スイッチ OFF アイコンの点滅（bootComplete 後は外す） */
+/* duration は app/lib/homeBootTiming.ts の SWITCH_BOOT_ANIMATION_MS と同期すること */
+/* 旧 3000ms の 0〜77.778% を 100% に圧縮。3 回点灯のあとの暗で終了 → 4 回目は点灯させず ON */
+@keyframes switch-off-blink {
+  0% {
+    opacity: 1;
+    animation-timing-function: steps(1, end);
+  }
+  20% {
+    opacity: 0.12;
+    animation-timing-function: steps(1, end);
+  }
+  40% {
+    opacity: 1;
+    animation-timing-function: steps(1, end);
+  }
+  60% {
+    opacity: 0.12;
+    animation-timing-function: steps(1, end);
+  }
+  80% {
+    opacity: 1;
+    animation-timing-function: steps(1, end);
+  }
+  100% {
+    opacity: 0.12;
+  }
+}
+
+.switch-off-blink {
+  animation: switch-off-blink 2333ms 1 forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-off-blink {
+    animation: none;
+  }
+}
 
 /* 横スクロールバーを非表示にする */
 .scrollbar-hide {
@@ -169,4 +207,80 @@ h1 {
 @keyframes top-grid-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(calc(-1 * var(--tgs-amount))); }
+}
+
+/* ── Works 詳細：上スクロールで次へ遷移時の入出アニメーション ── */
+@keyframes work-detail-enter-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes work-detail-exit-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-1rem);
+    filter: blur(3px);
+  }
+}
+
+.work-detail-enter-img {
+  animation: work-detail-enter-from-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.work-detail-enter-text {
+  animation: work-detail-enter-from-bottom 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.07s both;
+}
+
+.work-detail-enter-credits {
+  animation: work-detail-enter-from-bottom 0.48s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+}
+
+.work-detail-exit {
+  animation: work-detail-exit-up 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Works 詳細：作品間遷移の砂嵐ビデオ（マスク内・画像の上） */
+.work-detail-sandstorm-video {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.work-detail-sandstorm-enter-fade {
+  opacity: 0;
+  transition: opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-detail-enter-img,
+  .work-detail-enter-text,
+  .work-detail-enter-credits,
+  .work-detail-exit {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .work-detail-sandstorm-enter-fade {
+    transition: none !important;
+    opacity: 0 !important;
+  }
 }

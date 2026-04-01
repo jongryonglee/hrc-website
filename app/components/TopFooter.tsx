@@ -1,8 +1,27 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ScrambleText } from "./ScrambleText";
 
-export const TopFooter = () => {
+type TopFooterProps = {
+  /** トップの起動シーケンス完了後は true。未指定は常に ON 表示（他ページ用） */
+  bootComplete?: boolean;
+  /**
+   * スイッチ OFF の点滅アニメーション終了時（CSS animationend）。
+   * HomeBootShell がグリッド表示と同期させるために渡す。
+   */
+  onBootSequenceEnd?: () => void;
+};
+
+function isSwitchOffBlinkAnimation(name: string) {
+  return name === "switch-off-blink" || name.endsWith("switch-off-blink");
+}
+
+export const TopFooter = ({
+  bootComplete = true,
+  onBootSequenceEnd,
+}: TopFooterProps) => {
   return (
     <footer>
       <div className="layout-grid items-start whitespace-nowrap">
@@ -19,17 +38,36 @@ export const TopFooter = () => {
             />
           </Link>
         </div>
-        <div className="col-start-9 flex h-[24px] w-[24px] items-start justify-self-end md:col-span-1 md:[grid-row:span_3]">
-
-        <Image
-            src="/icon-switch-on.svg"
+        <div className="relative col-start-9 h-[24px] w-[24px] justify-self-end md:col-span-1 md:[grid-row:span_3]">
+          <Image
+            src="/icon/icon-switch-off.svg"
             alt=""
             width={24}
             height={24}
-            className="ml-auto h-full w-full object-contain"
+            className={`absolute inset-0 h-full w-full object-contain ${
+              bootComplete
+                ? "opacity-0"
+                : "opacity-100 switch-off-blink"
+            }`}
+            aria-hidden="true"
+            onAnimationEnd={(e) => {
+              if (bootComplete) return;
+              if (!onBootSequenceEnd) return;
+              if (!isSwitchOffBlinkAnimation(e.animationName)) return;
+              onBootSequenceEnd();
+            }}
+          />
+          <Image
+            src="/icon/icon-switch-on.svg"
+            alt=""
+            width={24}
+            height={24}
+            className={`absolute inset-0 h-full w-full object-contain ${
+              bootComplete ? "opacity-100" : "opacity-0"
+            }`}
             aria-hidden="true"
           />
-          </div>
+        </div>
 
         <div className="col-start-1 md:col-span-13 md:[grid-row:span_7]">
           <p>Music Label</p>
