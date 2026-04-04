@@ -50,3 +50,23 @@
   line-height: 1.4;
   opacity: 0.85;
 }
+
+.modeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.modeLabel {
+  opacity: 0.9;
+}
+
+.modeOption {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}

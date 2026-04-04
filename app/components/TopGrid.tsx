@@ -239,7 +239,7 @@ function GridCopy({
               alt=""
               aria-hidden={true}
               draggable={false}
-              className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none"
+              className="pointer-events-none absolute inset-0 z-[1] h-full w-full scale-[1.017] object-cover object-center select-none"
             />
           </>
         );
@@ -381,38 +381,36 @@ export function TopGrid({
     </div>
   );
 
+  /** ブート前: グリッドはレイアウトのまま invisible、親で黒を敷く（display:hidden だと高さが消え CLS が悪化） */
   const gridBlock = (cellFlash: boolean) => (
-    <div className="flex min-w-0 flex-col justify-end">
+    <div
+      className={`flex min-w-0 flex-col justify-end overflow-hidden${
+        !bootComplete ? " invisible" : ""
+      }`}
+    >
       {renderScrollStrip(cellFlash)}
     </div>
   );
 
-  /** ブート前もグリッドで高さを確保し、黒オーバーのみで隠す（空の黒画面だと CLS が大きい） */
-  const bootOverlay =
-    !bootComplete ? (
-      <div
-        className="pointer-events-none absolute inset-0 z-10 bg-black"
-        aria-hidden
-      />
-    ) : null;
+  const rootClass =
+    "relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden" +
+    (!bootComplete ? " bg-black" : "");
 
   if (prefersReducedMotion) {
     return (
-      <div className="relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden">
+      <div className={rootClass}>
         {gridBlock(false)}
-        {bootOverlay}
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden">
+    <div className={rootClass}>
       {bootComplete ? (
         <AstroidFlashProvider>{gridBlock(true)}</AstroidFlashProvider>
       ) : (
         gridBlock(false)
       )}
-      {bootOverlay}
     </div>
   );
 }

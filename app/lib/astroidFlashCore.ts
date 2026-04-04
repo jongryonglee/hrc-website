@@ -2,7 +2,7 @@
  * アストロイドフラッシュのタイミング・マスク穴のスケール計算（AstroidFlash / テストページ共通）
  */
 
-export const DURATION_SEC = 0.5;
+export const DURATION_SEC = 0.575;
 /** 中央の光（パルス）の長さ: 出現→少し拡大→縮小→消滅（短いほど見える時間が減る） */
 export const CENTER_CORE_MS = 250;
 /** 横線: 光の後を追う遅延 → 水平に伸びる → フェードアウト（縦方向の展開はしない） */
@@ -27,7 +27,7 @@ const MAIN_MS = DURATION_SEC * 1000;
  * フラッシュ後、マスクの縦スケールが 0→1 になるまでの時間（短く調整しやすい）
  * 開き終わってから TOTAL_CELL_MS までは穴は開いたまま
  */
-export const MASK_EXPAND_MS = 200;
+export const MASK_EXPAND_MS = 230;
 /** プチュン〜マスクが開き切るまで */
 export const TOTAL_CELL_MS = MAIN_MS;
 
@@ -137,3 +137,66 @@ export function mergedHoleFlash(localT: number): { sx: number; sy: number } {
 export const FLASH_END_SY = mergedHoleFlash(
   Math.max(0, FLASH_MS - 0.001),
 ).sy;
+
+/* ── CRT モード（ディテール） ──
+ * ① 中央：出現→拡大
+ * ② 縮小フェーズ：中央が縮むのと同じ時間帯に横線 scaleX 0→1（crtLineState）
+ * ③ 光シーケンス終了後：マスクが上下に展開（MASK_EXPAND_MS、sy 0→1）
+ */
+
+/** 拡大・縮小を同じ長さで対称に（短いほど速い） */
+export const CRT_EXPAND_MS = 115;
+export const CRT_SHRINK_MS = 115;
+/** 光レイヤが終わる＝マスクも開き切った時点 */
+export const CRT_SEQUENCE_MS = CRT_EXPAND_MS + CRT_SHRINK_MS;
+
+const CRT_SCALE_MIN = 0.16;
+
+function easeOutCubic(t: number): number {
+  return 1 - (1 - clamp01(t)) ** 3;
+}
+
+function easeInCubic(t: number): number {
+  return clamp01(t) ** 3;
+}
+
+/** 中央：拡大＝easeOutCubic、縮小＝その鏡像（easeInCubic）。消滅は縮小の後半だけでフェード */
+export function crtCenterScaleOpacity(localT: number): { scale: number; opacity: number } {
+  if (localT < 0 || localT >= CRT_SEQUENCE_MS) return { scale: 0, opacity: 0 };
+  if (localT < CRT_EXPAND_MS) {
+    const u = localT / CRT_EXPAND_MS;
+    const scale = CRT_SCALE_MIN + (1 - CRT_SCALE_MIN) * easeOutCubic(u);
+    return { scale, opacity: 1 };
+  }
+  const u = (localT - CRT_EXPAND_MS) / CRT_SHRINK_MS;
+  /** 拡大と同じ式を逆再生：1 → CRT_SCALE_MIN */
+  const scale =
+    CRT_SCALE_MIN + (1 - CRT_SCALE_MIN) * (1 - easeInCubic(u));
+  /** 前半は不透明度 1 のまま縮小、後半で消滅（拡大側は常に不透明度 1 に揃える） */
+  const fadeStart = 0.48;
+  let opacity = 1;
+  if (u > fadeStart) {
+    const v = (u - fadeStart) / (1 - fadeStart);
+    opacity = 1 - easeInCubic(v);
+  }
+  return { scale, opacity: opacity < 0.001 ? 0 : opacity };
+}
+
+/**
+ * 横線：拡大フェーズでは非表示。縮小フェーズで中央が縮み消えていくあいだに scaleX 0→1 で伸びる。
+ */
+export function crtLineState(localT: number): { scale: number; opacity: number } {
+  if (localT < 0 || localT >= CRT_SEQUENCE_MS) return { scale: 0, opacity: 0 };
+  if (localT < CRT_EXPAND_MS) {
+    return { scale: 0, opacity: 0 };
+  }
+  const u = (localT - CRT_EXPAND_MS) / CRT_SHRINK_MS;
+  const scale = easeInCubic(u);
+  const fadeStart = 0.52;
+  let opacity = 1;
+  if (u > fadeStart) {
+    const v = (u - fadeStart) / (1 - fadeStart);
+    opacity = 1 - easeInCubic(v);
+  }
+  return { scale, opacity: opacity < 0.001 ? 0 : opacity };
+}

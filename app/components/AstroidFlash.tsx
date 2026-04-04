@@ -9,9 +9,13 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { ASTROID_PATH_SLIM_LIGHT_100 } from "@/app/lib/astroidPath";
 import {
+  CRT_EXPAND_MS,
+  CRT_SHRINK_MS,
+  CRT_SEQUENCE_MS,
   FLASH_END_SY,
   FLASH_MS,
   MASK_CLOSED_SY,
@@ -21,11 +25,19 @@ import {
   TOTAL_CELL_MS,
   centerScaleTransform,
   clamp01,
+  crtCenterScaleOpacity,
+  crtLineState,
   maskExpandScales,
   mergedHoleFlash,
   setHoleScale,
 } from "@/app/lib/astroidFlashCore";
+import { CRT_SPARK_POLYGON_POINTS } from "@/app/lib/crtSparkShape";
+import {
+  DEFAULT_FLASH_CELL_MODE,
+  type FlashCellMode,
+} from "@/app/lib/flashCellMode";
 import maskStyles from "./astroidFlashMask.module.css";
+import crtStyles from "./crtFlashOverlay.module.css";
 import styles from "./AstroidRevealCell.module.css";
 
 /** 各セルの開始を 0〜この値 ms の範囲でランダムにずらす */
@@ -33,10 +45,14 @@ const STAGGER_MAX_MS = 1400;
 
 export type AstroidFlashCellRefs = {
   mask: HTMLDivElement;
-  /** フラッシュ中のみ。アストロイド形の抜き */
+  /** フラッシュ中のみ。astroid はアストロイド抜き、crt は全面矩形抜き（同一 transform） */
   holeGroupAstroid: SVGGElement;
-  /** 展開フェーズ。従来どおり全面矩形の抜き */
+  /** 展開フェーズ。全面矩形の抜き */
   holeGroupRect: SVGGElement;
+  /** crt モードのみ。白い中央光 */
+  crtCenter?: HTMLDivElement | null;
+  /** crt モードのみ。水平スリット */
+  crtLine?: HTMLDivElement | null;
 };
 
 type CellEntry = AstroidFlashCellRefs & {
@@ -47,51 +63,131 @@ type CellEntry = AstroidFlashCellRefs & {
 type RegisterCell = (refs: AstroidFlashCellRefs) => () => void;
 
 const AstroidFlashRegisterContext = createContext<RegisterCell | null>(null);
+const FlashCellModeContext = createContext<FlashCellMode>(
+  DEFAULT_FLASH_CELL_MODE,
+);
 
-function applyCellForLocalT(c: CellEntry, localT: number) {
-  const { mask, holeGroupAstroid, holeGroupRect } = c;
+const FlashReplayContext = createContext<(() => void) | null>(null);
 
-  if (localT >= TOTAL_CELL_MS) {
-    mask.style.visibility = "hidden";
-    mask.style.opacity = "0";
-    setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
-    setHoleScale(holeGroupRect, 1, 1);
+export function useFlashReplay(): (() => void) | null {
+  return useContext(FlashReplayContext);
+}
+
+function applyCrtWhiteLayers(c: CellEntry, localT: number) {
+  const { crtCenter, crtLine } = c;
+  if (!crtCenter || !crtLine) return;
+
+  if (localT < 0 || localT >= TOTAL_CELL_MS) {
+    crtCenter.style.opacity = "0";
+    crtCenter.style.filter = "";
+    crtLine.style.opacity = "0";
+    crtCenter.style.visibility = "hidden";
+    crtLine.style.visibility = "hidden";
     return;
   }
 
-  if (localT < 0) {
+  if (localT < CRT_SEQUENCE_MS) {
+    const center = crtCenterScaleOpacity(localT);
+    const line = crtLineState(localT);
+    crtCenter.style.visibility = "visible";
+    crtCenter.style.left = "50%";
+    crtCenter.style.top = "50%";
+    crtCenter.style.transform = `translate(-50%, -50%) scale(${Math.max(0.02, center.scale)})`;
+    crtCenter.style.opacity = String(center.opacity);
+    crtCenter.style.filter = "";
+    const lineScale =
+      line.scale <= 0 ? 0 : Math.max(0.015, line.scale);
+    crtLine.style.visibility =
+      localT < CRT_EXPAND_MS ? "hidden" : "visible";
+    crtLine.style.opacity = String(line.opacity);
+    crtLine.style.transform = `translateY(-50%) scaleX(${lineScale})`;
+    return;
+  }
+
+  crtCenter.style.opacity = "0";
+  crtCenter.style.filter = "";
+  crtLine.style.opacity = "0";
+  crtCenter.style.visibility = "hidden";
+  crtLine.style.visibility = "hidden";
+}
+
+function applyCellForLocalT(c: CellEntry, localT: number) {
+  const { mask, holeGroupAstroid, holeGroupRect } = c;
+  const isCrt = Boolean(c.crtCenter && c.crtLine);
+
+  try {
+    if (localT >= TOTAL_CELL_MS) {
+      mask.style.visibility = "hidden";
+      mask.style.opacity = "0";
+      setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+      setHoleScale(holeGroupRect, 1, 1);
+      return;
+    }
+
+    if (localT < 0) {
+      mask.style.visibility = "visible";
+      mask.style.opacity = "1";
+      holeGroupAstroid.removeAttribute("style");
+      holeGroupRect.removeAttribute("style");
+      setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+      setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
+      return;
+    }
+
     mask.style.visibility = "visible";
     mask.style.opacity = "1";
     holeGroupAstroid.removeAttribute("style");
     holeGroupRect.removeAttribute("style");
+
+    if (isCrt) {
+      if (localT < CRT_SEQUENCE_MS) {
+        setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+        setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
+        return;
+      }
+      const crtMaskEnd = CRT_SEQUENCE_MS + MASK_EXPAND_MS;
+      if (localT < crtMaskEnd) {
+        const uMask = clamp01((localT - CRT_SEQUENCE_MS) / MASK_EXPAND_MS);
+        const [, syEase] = maskExpandScales(uMask);
+        setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+        setHoleScale(holeGroupRect, 1, syEase);
+        return;
+      }
+      setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
+      setHoleScale(holeGroupRect, 1, 1);
+      return;
+    }
+
+    if (localT < FLASH_MS) {
+      const { sx, sy } = mergedHoleFlash(localT);
+      setHoleScale(holeGroupAstroid, sx, sy);
+      setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
+      return;
+    }
+
+    const uMask = clamp01((localT - FLASH_MS) / MASK_EXPAND_MS);
+    const [, syEase] = maskExpandScales(uMask);
+    const sy = FLASH_END_SY + (1 - FLASH_END_SY) * syEase;
     setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
-    setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
-    return;
+    setHoleScale(holeGroupRect, 1, sy);
+  } finally {
+    applyCrtWhiteLayers(c, localT);
   }
-
-  mask.style.visibility = "visible";
-  mask.style.opacity = "1";
-  holeGroupAstroid.removeAttribute("style");
-  holeGroupRect.removeAttribute("style");
-
-  if (localT < FLASH_MS) {
-    const { sx, sy } = mergedHoleFlash(localT);
-    setHoleScale(holeGroupAstroid, sx, sy);
-    setHoleScale(holeGroupRect, 1, MASK_CLOSED_SY);
-    return;
-  }
-
-  const uMask = clamp01((localT - FLASH_MS) / MASK_EXPAND_MS);
-  const [, syEase] = maskExpandScales(uMask);
-  const sy =
-    FLASH_END_SY + (1 - FLASH_END_SY) * syEase;
-  setHoleScale(holeGroupAstroid, 1, MASK_CLOSED_SY);
-  setHoleScale(holeGroupRect, 1, sy);
 }
 
-export function AstroidFlashProvider({ children }: { children: React.ReactNode }) {
+type AstroidFlashProviderProps = {
+  children: React.ReactNode;
+  /** 既定は従来のアストロイド抜き */
+  mode?: FlashCellMode;
+};
+
+export function AstroidFlashProvider({
+  children,
+  mode = DEFAULT_FLASH_CELL_MODE,
+}: AstroidFlashProviderProps) {
   const cellsRef = useRef(new Set<CellEntry>());
   const rafRef = useRef<number | null>(null);
+  const [replayToken, setReplayToken] = useState(0);
 
   const register = useCallback((refs: AstroidFlashCellRefs) => {
     const staggerMs = Math.floor(Math.random() * STAGGER_MAX_MS);
@@ -107,6 +203,10 @@ export function AstroidFlashProvider({ children }: { children: React.ReactNode }
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+  }, []);
+
+  const replay = useCallback(() => {
+    setReplayToken((n) => n + 1);
   }, []);
 
   const play = useCallback(() => {
@@ -148,23 +248,32 @@ export function AstroidFlashProvider({ children }: { children: React.ReactNode }
       cancelAnimationFrame(id);
       stopAnimation();
     };
-  }, [play, stopAnimation]);
+  }, [play, stopAnimation, replayToken]);
 
-  const value = useMemo(() => register, [register]);
+  const registerValue = useMemo(() => register, [register]);
+  const modeValue = useMemo(() => mode, [mode]);
+  const replayValue = useMemo(() => replay, [replay]);
 
   return (
-    <AstroidFlashRegisterContext.Provider value={value}>
-      {children}
-    </AstroidFlashRegisterContext.Provider>
+    <FlashCellModeContext.Provider value={modeValue}>
+      <FlashReplayContext.Provider value={replayValue}>
+        <AstroidFlashRegisterContext.Provider value={registerValue}>
+          {children}
+        </AstroidFlashRegisterContext.Provider>
+      </FlashReplayContext.Provider>
+    </FlashCellModeContext.Provider>
   );
 }
 
 export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
   const register = useContext(AstroidFlashRegisterContext);
+  const mode = useContext(FlashCellModeContext);
   const holeMaskId = useId().replace(/:/g, "");
   const maskRef = useRef<HTMLDivElement>(null);
   const holeGroupAstroidRef = useRef<SVGGElement>(null);
   const holeGroupRectRef = useRef<SVGGElement>(null);
+  const crtCenterRef = useRef<HTMLDivElement>(null);
+  const crtLineRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (!register) return;
@@ -172,8 +281,15 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
     const holeGroupAstroid = holeGroupAstroidRef.current;
     const holeGroupRect = holeGroupRectRef.current;
     if (!mask || !holeGroupAstroid || !holeGroupRect) return;
-    return register({ mask, holeGroupAstroid, holeGroupRect });
-  }, [register]);
+    const isCrt = mode === "crt";
+    return register({
+      mask,
+      holeGroupAstroid,
+      holeGroupRect,
+      crtCenter: isCrt ? crtCenterRef.current : null,
+      crtLine: isCrt ? crtLineRef.current : null,
+    });
+  }, [register, mode]);
 
   useLayoutEffect(() => {
     const a = holeGroupAstroidRef.current;
@@ -195,6 +311,27 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
   return (
     <div className={styles.root}>
       <div className={styles.content}>{children}</div>
+      {mode === "crt" ? (
+        <div className={crtStyles.crtStack} aria-hidden>
+          <div ref={crtCenterRef} className={crtStyles.crtCenter}>
+            <div className={crtStyles.crtGlowHalo} aria-hidden />
+            <svg
+              className={crtStyles.crtSparkSvg}
+              viewBox="0 0 100 100"
+              aria-hidden
+            >
+              <polygon
+                points={CRT_SPARK_POLYGON_POINTS}
+                fill="#ffffff"
+                stroke="none"
+              />
+            </svg>
+          </div>
+          <div ref={crtLineRef} className={crtStyles.crtLineWrap}>
+            <div className={crtStyles.crtLine} />
+          </div>
+        </div>
+      ) : null}
       <div ref={maskRef} className={maskStyles.maskOverlay} aria-hidden>
         <svg
           className={maskStyles.maskSvg}
@@ -222,7 +359,11 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
                 ref={holeGroupAstroidRef}
                 transform={centerScaleTransform(1, MASK_CLOSED_SY)}
               >
-                <path d={ASTROID_PATH_SLIM_LIGHT_100} fill="black" />
+                {mode === "crt" ? (
+                  <rect x="0" y="0" width="100" height="100" fill="black" />
+                ) : (
+                  <path d={ASTROID_PATH_SLIM_LIGHT_100} fill="black" />
+                )}
               </g>
               <g
                 ref={holeGroupRectRef}

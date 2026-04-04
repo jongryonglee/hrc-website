@@ -2,6 +2,7 @@
 .maskOverlay {
   position: absolute;
   inset: 0;
+  /* crt 白レイヤ（z-index:2）より下 */
   z-index: 1;
   width: 100%;
   height: 100%;
