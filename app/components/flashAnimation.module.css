@@ -1,0 +1,136 @@
+/* AstroidFlash / AstroidRevealCell — レイアウト・マスク SVG・CRT 白レイヤ */
+
+/* ── セルラッパー（aspect-ratio 親は relative）。overflow は hidden にしない
+   （works-mask の filter 外周が切れないように。写真は TW_IMAGE_CLIP_LAYER でクリップ） */
+.root {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.content {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── マスク SVG オーバーレイ（黒フィル＋抜き穴） */
+.maskOverlay {
+  position: absolute;
+  inset: 0;
+  /* crt 白レイヤ（z-index:2）より下 */
+  z-index: 1;
+  width: 110%;
+  height: 110%;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.maskSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  shape-rendering: geometricPrecision;
+}
+
+/* ── CRT: 背面だけ円形のぼかし光／手前はギザ SVG のみ（ぼかしを表に重ねない） */
+.crtStack {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.crtCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(13vw, 56px);
+  height: min(13vw, 56px);
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  opacity: 0;
+  visibility: hidden;
+  isolation: isolate;
+  /* 親に blend をかけない（ギザの #fff が背景と混ざって灰色に見えるのを防ぐ） */
+  mix-blend-mode: normal;
+}
+
+/* 奥：ギザと同形ではなく、後ろからにじむ円光だけ（ギザの隙間や外周に見える） */
+.crtGlowHalo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  width: 92%;
+  height: 92%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.18) 48%,
+    transparent 72%
+  );
+  filter: blur(6px);
+  opacity: 0.55;
+  pointer-events: none;
+  mix-blend-mode: plus-lighter;
+}
+
+/* 手前：シャープな #ffffff のみ（ぼかしレイヤーなし） */
+.crtSparkSvg {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* アンチエイリアスで縁が灰色に見えるのを抑え、塗りを純白に近づける */
+  shape-rendering: crispEdges;
+  pointer-events: none;
+}
+
+.crtLineWrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  transform: translateY(-50%) scaleX(0.02);
+  transform-origin: center center;
+  opacity: 0;
+  visibility: hidden;
+  mix-blend-mode: plus-lighter;
+}
+
+.crtLine {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  /* 高さは 2px のまま、横方向だけグラデーションを引き伸ばして端まで光が届く見え方に */
+  transform: scaleX(1.12);
+  transform-origin: center center;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.95) 6%,
+    #ffffff 18%,
+    #ffffff 82%,
+    rgba(255, 255, 255, 0.95) 94%,
+    rgba(255, 255, 255, 0.72) 100%
+  );
+  /* 横方向のみ（Y 方向のぼかしを抑えて高さ感を増やさない） */
+  box-shadow:
+    0 0 1px rgba(255, 255, 255, 0.98),
+    14px 0 10px -4px rgba(255, 255, 255, 0.4),
+    -14px 0 10px -4px rgba(255, 255, 255, 0.4);
+  filter: none;
+}

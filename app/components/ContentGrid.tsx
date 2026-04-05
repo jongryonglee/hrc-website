@@ -2,6 +2,13 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import {
+  MASK_SRC_SMALL,
+  TW_CELL_CARD,
+  TW_IMAGE_CLIP_LAYER,
+  TW_IMAGE_FILL_UNDER_MASK,
+  TW_MASK_NEXT_IMAGE_SMALL,
+} from "@/app/lib/workThumbnailLayout";
 import type { KeyboardEvent } from "react";
 
 export type GridItem = {
@@ -23,7 +30,7 @@ type ContentGridProps = {
 export const ContentGrid = ({
   items,
   showMask = false,
-  imageClassName = "object-cover",
+  imageClassName = TW_IMAGE_FILL_UNDER_MASK,
   rounded = false,
 }: ContentGridProps) => {
   const router = useRouter();
@@ -48,27 +55,29 @@ export const ContentGrid = ({
           const inner = (
             <>
               <div
-                className={`relative aspect-[268/204] w-full overflow-hidden ${
-                  rounded ? "rounded-[12px]" : ""
-                }`}
+                className={`${TW_CELL_CARD}${rounded ? " rounded-[12px]" : ""}`}
               >
-                <Image
-                  src={item.image}
-                  alt={item.title}
-                  fill
-                  className={imageClassName}
-                  sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
-                  priority={i < 4}
-                  unoptimized={true}
-                />
+                <div
+                  className={`${TW_IMAGE_CLIP_LAYER}${rounded ? " rounded-[12px]" : ""}`}
+                >
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    className={imageClassName}
+                    sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
+                    priority={i < 4}
+                    unoptimized={true}
+                  />
+                </div>
                 {/* 黒い縁のマスクを上に重ねる（コンテナより少し大きくして画像のはみ出しを隠す） */}
                 {showMask && (
                   <Image
-                    src="/works-mask.svg"
+                    src={MASK_SRC_SMALL}
                     alt=""
                     aria-hidden="true"
                     fill
-                    className="pointer-events-none select-none scale-[1.017]"
+                    className={TW_MASK_NEXT_IMAGE_SMALL}
                     unoptimized
                   />
                 )}

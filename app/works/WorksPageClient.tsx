@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkListItem } from "@/app/lib/cmsTypes";
+import {
+  MASK_SRC_SMALL,
+  TW_CELL_WORKS_LIST_HOVER,
+  TW_IMAGE_FILL_UNDER_MASK,
+  TW_MASK_LAYER_WORKS_LIST_HOVER,
+} from "@/app/lib/workThumbnailLayout";
+import { useCanHover } from "@/app/hooks/useCanHover";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { ScrambleText } from "../components/ScrambleText";
@@ -18,6 +25,7 @@ type Props = {
 
 export function WorksPageClient({ initialItems }: Props) {
   const router = useRouter();
+  const canHover = useCanHover();
   const [hovered, setHovered] = useState<WorkItem | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -73,10 +81,12 @@ export function WorksPageClient({ initialItems }: Props) {
                 key={work._id}
                 className="group/row contents"
                 onMouseEnter={() => {
+                  if (!canHover) return;
                   setHovered(work);
                   setHoverIndex(index);
                 }}
                 onMouseLeave={() => {
+                  if (!canHover) return;
                   setHovered(null);
                   setHoverIndex(null);
                 }}
@@ -141,7 +151,12 @@ export function WorksPageClient({ initialItems }: Props) {
                     durationMs={400}
                     active={hovered?._id === work._id}
                   />
-                  <div className="pointer-events-none absolute left-1/2 bottom-0 h-px w-[200vw] -translate-x-1/2 bg-white/0 transition-colors group-hover/row:bg-white/70" />
+                  <div
+                    className={
+                      "pointer-events-none absolute left-1/2 bottom-0 h-px w-[200vw] -translate-x-1/2 bg-white/0 transition-colors" +
+                      (canHover ? " group-hover/row:bg-white/70" : "")
+                    }
+                  />
                 </div>
               </div>
             ))}
@@ -157,17 +172,17 @@ export function WorksPageClient({ initialItems }: Props) {
               }}
             >
               <div className="flex justify-center">
-                <div className="relative aspect-[360/274] w-[600px] -translate-y-[51px]">
+                <div className={TW_CELL_WORKS_LIST_HOVER}>
                   <img
                     src={hovered.thumbnailUrl}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
+                    className={`absolute inset-0 h-full w-full ${TW_IMAGE_FILL_UNDER_MASK}`}
                   />
                   <img
-                    src="/works-mask.svg"
+                    src={MASK_SRC_SMALL}
                     alt=""
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 h-full w-full"
+                    className={TW_MASK_LAYER_WORKS_LIST_HOVER}
                   />
                 </div>
               </div>

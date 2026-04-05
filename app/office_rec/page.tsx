@@ -45,11 +45,7 @@ export default async function OfficeRecPage() {
         </div>
       </section>
 
-      <ContentGrid
-        items={officeRecItems}
-        rounded={true}
-        imageClassName="object-cover"
-      />
+      <ContentGrid items={officeRecItems} rounded={true} />
       <section>
         <div className="layout-grid">
           <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
