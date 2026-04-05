@@ -4,6 +4,14 @@ import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
+import {
+  IMAGE_SIZES_TOP_GRID_CELL,
+  TW_CELL_TOP_GRID,
+  TW_IMAGE_CLIP_LAYER,
+  TW_IMAGE_FILL_UNDER_MASK,
+  TW_MASK_LAYER_TOP_GRID,
+  maskSrcForTopGridCell,
+} from "@/app/lib/workThumbnailLayout";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
 
@@ -219,27 +227,27 @@ function GridCopy({
     >
       {cfg.areas.map((area, i) => {
         const src = urls[i];
-        const maskSrc = cfg.bigMaskAreas.has(area.name)
-          ? "/icon/works-mask-big.svg"
-          : "/works-mask.svg";
+        const maskSrc = maskSrcForTopGridCell(cfg.bigMaskAreas.has(area.name));
 
         const media = (
           <>
-            <Image
-              src={src}
-              alt=""
-              fill
-              sizes="(max-width: 767px) 268px, 360px"
-              className="object-cover object-center"
-              draggable={false}
-              unoptimized={nextImageUnoptimized(src)}
-            />
+            <div className={TW_IMAGE_CLIP_LAYER}>
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes={IMAGE_SIZES_TOP_GRID_CELL}
+                className={TW_IMAGE_FILL_UNDER_MASK}
+                draggable={false}
+                unoptimized={nextImageUnoptimized(src)}
+              />
+            </div>
             <img
               src={maskSrc}
               alt=""
               aria-hidden={true}
               draggable={false}
-              className="pointer-events-none absolute inset-0 z-[1] h-full w-full scale-[1.017] object-cover object-center select-none"
+              className={TW_MASK_LAYER_TOP_GRID}
             />
           </>
         );
@@ -247,7 +255,7 @@ function GridCopy({
         return (
           <div
             key={`${variant}-${area.name}`}
-            className="relative isolate aspect-[268/204] overflow-hidden md:aspect-[360/274]"
+            className={TW_CELL_TOP_GRID}
             style={{ gridArea: area.name }}
           >
             {cellFlash ? (
@@ -381,10 +389,10 @@ export function TopGrid({
     </div>
   );
 
-  /** ブート前: グリッドはレイアウトのまま invisible、親で黒を敷く（display:hidden だと高さが消え CLS が悪化） */
+  /** ブート前: グリッドはレイアウトのまま invisible（display:hidden だと高さが消え CLS が悪化） */
   const gridBlock = (cellFlash: boolean) => (
     <div
-      className={`flex min-w-0 flex-col justify-end overflow-hidden${
+      className={`flex min-h-0 min-w-0 flex-1 flex-col justify-end overflow-hidden${
         !bootComplete ? " invisible" : ""
       }`}
     >
@@ -392,9 +400,9 @@ export function TopGrid({
     </div>
   );
 
+  /** flex-1 でメイン領域の縦をすべて使い、justify-end で下辺＝スペーサー直上に揃える。上は bg-black で塗り足し */
   const rootClass =
-    "relative flex min-h-0 w-full flex-1 flex-col justify-end overflow-hidden" +
-    (!bootComplete ? " bg-black" : "");
+    "relative flex min-h-0 w-full flex-1 flex-col justify-end bg-black";
 
   if (prefersReducedMotion) {
     return (

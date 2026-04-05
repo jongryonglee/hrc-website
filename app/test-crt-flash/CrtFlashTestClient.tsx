@@ -10,7 +10,7 @@ import {
 import {
   DEFAULT_FLASH_CELL_MODE,
   type FlashCellMode,
-} from "@/app/lib/flashCellMode";
+} from "@/app/lib/flashAnimation";
 import styles from "./crt-flash.module.css";
 
 const SAMPLE_SRC = "/favicon.png";
@@ -83,7 +83,7 @@ export function CrtFlashTestClient() {
         ロジックは <code>AstroidFlashProvider</code> /{" "}
         <code>AstroidRevealCell</code> と共通です。トップの既定は{" "}
         <code>{DEFAULT_FLASH_CELL_MODE}</code>（
-        <code>app/lib/flashCellMode.ts</code>
+        <code>app/lib/flashAnimation.ts</code>
         ）。砂嵐のみの試験は <code>/test-sandstorm</code>。
       </p>
     </div>

@@ -8,11 +8,17 @@ import {
   useRef,
   useState,
 } from "react";
-import type { MouseEvent } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { WorkDetailItem } from "@/app/lib/cmsTypes";
+import { getSandstormVideoSurfaceStyle } from "@/app/lib/workDetailSandstorm";
+import {
+  MASK_SRC_SMALL,
+  TW_IMAGE_CLIP_LAYER,
+  TW_IMAGE_FILL_UNDER_MASK,
+  TW_MASK_LAYER_WORK_DETAIL,
+  TW_SHELL_DETAIL_THUMB_WORK,
+} from "@/app/lib/workThumbnailLayout";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "../../components/AstroidFlash";
@@ -72,6 +78,8 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
   /** transitionTo の router.push を遅延させるタイマー。アンマウント後に発火すると別ページへ誤遷移するので必ず解除 */
   const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
+  /** 前後遷移ジェスチャーはサムネ枠内のみ（window だと横スクロール・ピンチも拾う） */
+  const thumbnailGestureRef = useRef<HTMLDivElement | null>(null);
 
   /** クライアント遷移で同一インスタンスが再利用されると transitionTo の exiting が残るためリセット */
   useEffect(() => {
@@ -228,14 +236,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     transitionTo(`/works/${prevId}`);
   }, [data?._id, data?.prevId, transitionTo]);
 
-  const nextHref = data?.nextId ? `/works/${data.nextId}` : "/works";
-
-  const onNextLinkClick = (e: MouseEvent<HTMLAnchorElement>) => {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-    e.preventDefault();
-    transitionTo(nextHref);
-  };
-
   const tryNavigateNextRef = useRef(tryNavigateNext);
   const tryNavigatePrevRef = useRef(tryNavigatePrev);
 
@@ -266,42 +266,70 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
 
   useEffect(() => {
     if (!sequentialNav) return;
+    const el = thumbnailGestureRef.current;
+    if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
+      // ピンチズーム（Chrome は ctrlKey）・横スクロール主体は無視
+      if (e.ctrlKey || e.metaKey) return;
       const dy = e.deltaY;
+      const dx = e.deltaX;
       if (dy === 0) return;
+      if (Math.abs(dx) >= Math.abs(dy)) return;
       const isScrollUp = dy < 0;
       const wantsNext = WHEEL_NEXT_ON_SCROLL_UP ? isScrollUp : !isScrollUp;
       if (wantsNext) tryNavigateNextRef.current();
       else tryNavigatePrevRef.current();
     };
 
-    window.addEventListener("wheel", onWheel, { passive: true });
-    return () => window.removeEventListener("wheel", onWheel);
+    el.addEventListener("wheel", onWheel, { passive: true });
+    return () => el.removeEventListener("wheel", onWheel);
   }, [sequentialNav]);
 
   useEffect(() => {
     if (!sequentialNav) return;
+    const el = thumbnailGestureRef.current;
+    if (!el) return;
 
     let startY = 0;
+    let startX = 0;
+    /** 2 本指以上で始まったジェスチャーはピンチ等とみなして無視 */
+    let multiTouchGesture = false;
     const threshold = 48;
 
     const onTouchStart = (e: TouchEvent) => {
-      startY = e.changedTouches[0]?.clientY ?? 0;
+      if (e.touches.length > 1) {
+        multiTouchGesture = true;
+        return;
+      }
+      multiTouchGesture = false;
+      startY = e.touches[0]?.clientY ?? 0;
+      startX = e.touches[0]?.clientX ?? 0;
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      const endY = e.changedTouches[0]?.clientY ?? startY;
-      const delta = endY - startY;
-      if (delta > threshold) tryNavigateNextRef.current();
-      else if (-delta > threshold) tryNavigatePrevRef.current();
+      if (e.touches.length > 0) return;
+      if (multiTouchGesture) {
+        multiTouchGesture = false;
+        return;
+      }
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const endY = t.clientY;
+      const endX = t.clientX;
+      const deltaY = endY - startY;
+      const deltaX = endX - startX;
+      // 横スワイプ主体は無視（縦のみ前後へ）
+      if (Math.abs(deltaX) >= Math.abs(deltaY)) return;
+      if (deltaY > threshold) tryNavigateNextRef.current();
+      else if (-deltaY > threshold) tryNavigatePrevRef.current();
     };
 
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
     };
   }, [sequentialNav]);
 
@@ -312,32 +340,35 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
 
   const thumbnailContent = data?.thumbnailUrl ? (
     <>
-      <Image
-        src={data.thumbnailUrl}
-        alt=""
-        fill
-        priority
-        sizes="(min-width: 768px) 60vw, 95vw"
-        className="object-cover"
-        unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
-      />
-      {showSandstorm && (
-        <video
-          ref={sandstormVideoRef}
-          src={SANDSTORM_SRC}
-          className={`work-detail-sandstorm-video ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
-          loop={sandstormExit}
-          muted
-          playsInline
-          preload="auto"
-          aria-hidden
+      <div className={TW_IMAGE_CLIP_LAYER}>
+        <Image
+          src={data.thumbnailUrl}
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 768px) 60vw, 95vw"
+          className={TW_IMAGE_FILL_UNDER_MASK}
+          unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
         />
-      )}
+        {showSandstorm && (
+          <video
+            ref={sandstormVideoRef}
+            src={SANDSTORM_SRC}
+            className={`work-detail-sandstorm-video ${TW_IMAGE_FILL_UNDER_MASK} ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
+            style={getSandstormVideoSurfaceStyle()}
+            loop={sandstormExit}
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden
+          />
+        )}
+      </div>
       <img
-        src="/works-mask.svg"
+        src={MASK_SRC_SMALL}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[2] h-full w-full"
+        className={TW_MASK_LAYER_WORK_DETAIL}
       />
     </>
   ) : (
@@ -399,7 +430,8 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
           className="md:[grid-area:1/1] md:z-0 md:flex md:items-center md:justify-center"
         >
           <div
-            className={`relative aspect-[360/274] overflow-hidden w-[95vw] mx-auto md:w-auto md:mx-0 md:h-[80vh] ${imgAnim} ${!bootReady ? "opacity-0" : ""}`}
+            ref={thumbnailGestureRef}
+            className={`${TW_SHELL_DETAIL_THUMB_WORK} ${imgAnim} ${!bootReady ? "opacity-0" : ""}`}
           >
             {bootReady && useCrtEnter ? (
               <AstroidFlashProvider>
@@ -456,19 +488,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
                 </Fragment>
               ))}
             </div>
-
-            {sequentialNav && (
-              <div className="col-start-3 col-span-5 mt-[var(--grid-row)] md:mt-0 md:col-start-16 md:col-span-3 md:[grid-row-start:24] pointer-events-auto">
-                <Link
-                  href={nextHref}
-                  onClick={onNextLinkClick}
-                  className="hover:opacity-70 transition-opacity inline-flex items-center gap-2"
-                >
-                  <Image src="/arrow-down.svg" alt="" width={9} height={9} />
-                  next
-                </Link>
-              </div>
-            )}
           </div>
         </div>
       </section>

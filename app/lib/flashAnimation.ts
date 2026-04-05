@@ -1,6 +1,84 @@
 /**
- * アストロイドフラッシュのタイミング・マスク穴のスケール計算（AstroidFlash / テストページ共通）
+ * トップグリッド／作品詳細のフラッシュ（アストロイド・CRT）用の定数・形状・タイミング計算。
+ * UI・スタイルは `app/components/AstroidFlash.tsx` と `flashAnimation.module.css`。
  */
+
+/* ── セル表現モード ── */
+
+/**
+ * astroid: SVG アストロイド抜き（従来）
+ * crt: 矩形抜き + 白の中央光・横スリット（レンズフレア風）
+ */
+export type FlashCellMode = "astroid" | "crt";
+
+export const DEFAULT_FLASH_CELL_MODE: FlashCellMode = "crt";
+
+/* ── 形状：アストロイドパス（マスク穴） ── */
+
+/**
+ * 一般化アストロイド: x = cx + rx·cos^p t, y = cy + ry·sin^p t（p は奇数 ≥3 推奨）
+ */
+export function astroidPathD(
+  viewSize = 100,
+  segments = 96,
+  opts?: { rx?: number; ry?: number; power?: number },
+): string {
+  const c = viewSize / 2;
+  const rx = opts?.rx ?? viewSize / 2;
+  const ry = opts?.ry ?? viewSize / 2;
+  const p = opts?.power ?? 3;
+  const parts: string[] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = (i / segments) * 2 * Math.PI;
+    const x = c + rx * Math.cos(t) ** p;
+    const y = c + ry * Math.sin(t) ** p;
+    parts.push(`${i === 0 ? "M" : "L"}${x.toFixed(3)} ${y.toFixed(3)}`);
+  }
+  return `${parts.join(" ")} Z`;
+}
+
+export const SLIM_LIGHT_RX = 50;
+export const SLIM_LIGHT_RY = 19;
+export const SLIM_LIGHT_POWER = 5;
+
+/** 横長スリム光（マスクと共通） */
+export const ASTROID_PATH_SLIM_LIGHT_100 = astroidPathD(100, 96, {
+  rx: SLIM_LIGHT_RX,
+  ry: SLIM_LIGHT_RY,
+  power: SLIM_LIGHT_POWER,
+});
+
+/* ── 形状：CRT 中央ギザ（polygon points） ── */
+
+/**
+ * CRT 中央の細かいギザ（非円形）viewBox 0 0 100 100。塗りは #ffffff。
+ */
+function buildSparkPolygon(cx: number, cy: number): string {
+  const parts: string[] = [];
+  /** 尖りを多くしてチクチクを細かく */
+  const spikes = 32;
+  for (let i = 0; i < spikes * 2; i++) {
+    const a = (i * Math.PI) / spikes - Math.PI / 2;
+    const outer = i % 2 === 0;
+    const ro = outer
+      ? 42 +
+        0.55 * Math.sin(i * 0.62) +
+        0.28 * Math.cos(i * 0.24) +
+        0.2 * Math.sin(i * 1.1)
+      : 20 +
+        0.65 * Math.sin(i * 0.51) +
+        0.32 * Math.cos(i * 0.37) +
+        0.18 * Math.cos(i * 0.88);
+    parts.push(
+      `${(cx + ro * Math.cos(a)).toFixed(2)},${(cy + ro * Math.sin(a)).toFixed(2)}`,
+    );
+  }
+  return parts.join(" ");
+}
+
+export const CRT_SPARK_POLYGON_POINTS = buildSparkPolygon(50, 50);
+
+/* ── タイミング・マスク穴スケール（ドライバ） ── */
 
 export const DURATION_SEC = 0.575;
 /** 中央の光（パルス）の長さ: 出現→少し拡大→縮小→消滅（短いほど見える時間が減る） */

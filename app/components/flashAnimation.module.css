@@ -1,4 +1,45 @@
-/* CRT: 背面だけ円形のぼかし光／手前はギザ SVG のみ（ぼかしを表に重ねない） */
+/* AstroidFlash / AstroidRevealCell — レイアウト・マスク SVG・CRT 白レイヤ */
+
+/* ── セルラッパー（aspect-ratio 親は relative）。overflow は hidden にしない
+   （works-mask の filter 外周が切れないように。写真は TW_IMAGE_CLIP_LAYER でクリップ） */
+.root {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+}
+
+.content {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── マスク SVG オーバーレイ（黒フィル＋抜き穴） */
+.maskOverlay {
+  position: absolute;
+  inset: 0;
+  /* crt 白レイヤ（z-index:2）より下 */
+  z-index: 1;
+  width: 110%;
+  height: 110%;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.maskSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  shape-rendering: geometricPrecision;
+}
+
+/* ── CRT: 背面だけ円形のぼかし光／手前はギザ SVG のみ（ぼかしを表に重ねない） */
 .crtStack {
   position: absolute;
   inset: 0;

@@ -11,11 +11,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { ASTROID_PATH_SLIM_LIGHT_100 } from "@/app/lib/astroidPath";
 import {
+  ASTROID_PATH_SLIM_LIGHT_100,
   CRT_EXPAND_MS,
-  CRT_SHRINK_MS,
   CRT_SEQUENCE_MS,
+  CRT_SHRINK_MS,
+  CRT_SPARK_POLYGON_POINTS,
+  DEFAULT_FLASH_CELL_MODE,
   FLASH_END_SY,
   FLASH_MS,
   MASK_CLOSED_SY,
@@ -30,15 +32,9 @@ import {
   maskExpandScales,
   mergedHoleFlash,
   setHoleScale,
-} from "@/app/lib/astroidFlashCore";
-import { CRT_SPARK_POLYGON_POINTS } from "@/app/lib/crtSparkShape";
-import {
-  DEFAULT_FLASH_CELL_MODE,
   type FlashCellMode,
-} from "@/app/lib/flashCellMode";
-import maskStyles from "./astroidFlashMask.module.css";
-import crtStyles from "./crtFlashOverlay.module.css";
-import styles from "./AstroidRevealCell.module.css";
+} from "@/app/lib/flashAnimation";
+import styles from "./flashAnimation.module.css";
 
 /** 各セルの開始を 0〜この値 ms の範囲でランダムにずらす */
 const STAGGER_MAX_MS = 1400;
@@ -312,11 +308,11 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
     <div className={styles.root}>
       <div className={styles.content}>{children}</div>
       {mode === "crt" ? (
-        <div className={crtStyles.crtStack} aria-hidden>
-          <div ref={crtCenterRef} className={crtStyles.crtCenter}>
-            <div className={crtStyles.crtGlowHalo} aria-hidden />
+        <div className={styles.crtStack} aria-hidden>
+          <div ref={crtCenterRef} className={styles.crtCenter}>
+            <div className={styles.crtGlowHalo} aria-hidden />
             <svg
-              className={crtStyles.crtSparkSvg}
+              className={styles.crtSparkSvg}
               viewBox="0 0 100 100"
               aria-hidden
             >
@@ -327,14 +323,14 @@ export function AstroidRevealCell({ children }: { children: React.ReactNode }) {
               />
             </svg>
           </div>
-          <div ref={crtLineRef} className={crtStyles.crtLineWrap}>
-            <div className={crtStyles.crtLine} />
+          <div ref={crtLineRef} className={styles.crtLineWrap}>
+            <div className={styles.crtLine} />
           </div>
         </div>
       ) : null}
-      <div ref={maskRef} className={maskStyles.maskOverlay} aria-hidden>
+      <div ref={maskRef} className={styles.maskOverlay} aria-hidden>
         <svg
-          className={maskStyles.maskSvg}
+          className={styles.maskSvg}
           viewBox="0 0 100 100"
           preserveAspectRatio="xMidYMid slice"
         >

@@ -27,8 +27,8 @@ export function HomeBootShell({ cmsItems }: { cmsItems: TopGridWorkItem[] }) {
 
   return (
     <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)]">
-      <section className="relative flex min-h-0 min-w-0 flex-1 flex-col justify-end">
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col justify-end overflow-hidden">
+      <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <TopGrid cmsItems={cmsItems} bootComplete={bootComplete} />
         </div>
       </section>
