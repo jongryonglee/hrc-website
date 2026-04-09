@@ -2,14 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  MASK_SRC_SMALL,
-  TW_CELL_CARD,
-  TW_IMAGE_CLIP_LAYER,
-  TW_IMAGE_FILL_UNDER_MASK,
-  TW_MASK_NEXT_IMAGE_SMALL,
-} from "@/app/lib/workThumbnailLayout";
 import type { KeyboardEvent } from "react";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
 
 export type GridItem = {
   _key: string;
@@ -30,7 +24,7 @@ type ContentGridProps = {
 export const ContentGrid = ({
   items,
   showMask = false,
-  imageClassName = TW_IMAGE_FILL_UNDER_MASK,
+  imageClassName = "object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]",
   rounded = false,
 }: ContentGridProps) => {
   const router = useRouter();
@@ -55,10 +49,10 @@ export const ContentGrid = ({
           const inner = (
             <>
               <div
-                className={`${TW_CELL_CARD}${rounded ? " rounded-[12px]" : ""}`}
+                className={`relative aspect-[268/204] w-full${rounded ? " rounded-[12px]" : ""}`}
               >
                 <div
-                  className={`${TW_IMAGE_CLIP_LAYER}${rounded ? " rounded-[12px]" : ""}`}
+                  className={`absolute inset-0 overflow-hidden${rounded ? " rounded-[12px]" : ""}`}
                 >
                   <Image
                     src={item.image}
@@ -67,17 +61,17 @@ export const ContentGrid = ({
                     className={imageClassName}
                     sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
                     priority={i < 4}
-                    unoptimized={true}
+                    unoptimized={nextImageUnoptimized(item.image)}
                   />
                 </div>
                 {/* 黒い縁のマスクを上に重ねる（コンテナより少し大きくして画像のはみ出しを隠す） */}
                 {showMask && (
                   <Image
-                    src={MASK_SRC_SMALL}
+                    src="/works-mask.svg"
                     alt=""
                     aria-hidden="true"
                     fill
-                    className={TW_MASK_NEXT_IMAGE_SMALL}
+                    className="pointer-events-none select-none"
                     unoptimized
                   />
                 )}

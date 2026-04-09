@@ -2,6 +2,7 @@
 
 import {
   Fragment,
+  type CSSProperties,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -10,35 +11,23 @@ import {
 } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import type { WorkDetailItem } from "@/app/lib/cmsTypes";
-import { getSandstormVideoSurfaceStyle } from "@/app/lib/workDetailSandstorm";
-import {
-  MASK_SRC_SMALL,
-  TW_IMAGE_CLIP_LAYER,
-  TW_IMAGE_FILL_UNDER_MASK,
-  TW_MASK_LAYER_WORK_DETAIL,
-  TW_SHELL_DETAIL_THUMB_WORK,
-} from "@/app/lib/workThumbnailLayout";
+import type { WorkCreditLine, WorkDetailItem } from "@/app/lib/cmsTypes";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "../../components/AstroidFlash";
 import { Header } from "../../components/Header";
+import { LiteYouTubeEmbed } from "../../components/LiteYouTubeEmbed";
 import { ScrambleText } from "../../components/ScrambleText";
 import { SoundToggle } from "../../components/SoundToggle";
 
 const STORAGE_ENTER = "workDetailEnterTransition";
-/** transitionTo でセット。遷移先 id と一致するときだけ「内部入場」として CRT を抑止（先に effect が走ってフラグだけ消す事故を防ぐ） */
 const STORAGE_ENTER_TARGET_ID = "workDetailEnterTargetId";
 const STORAGE_LOCK = "workDetailNavLockUntil";
-/** `/works` 一覧から行クリックで「遷移先の作品 id」をセット。CRT は値が現在の data._id と一致するときのみ */
 const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 
-const SANDSTORM_SRC = "/sandstorm.mp4";
-/** 入場時：砂嵐を見せてからフェードアウト開始まで */
-const SANDSTORM_ENTER_HOLD_MS = 380;
+const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
+const SANDSTORM_ENTER_HOLD_MS = 800;
 const SANDSTORM_ENTER_FADE_MS = 480;
-
-/** 連続遷移防止：この時間はスクロール遷移を受け付けない */
 const NAV_COOLDOWN_MS = 1400;
 const EXIT_MS = 420;
 
@@ -46,45 +35,102 @@ function isWorkToWorkHref(href: string) {
   return /^\/works\/[^/]+$/.test(href);
 }
 
-/**
- * 「次へ」のホイール方向（逆方向は前へ）
- * - true: 上方向（deltaY < 0）= 次 / 下方向 = 前へ
- * - false: 下方向（deltaY > 0）= 次 / 上方向 = 前へ
- */
-const WHEEL_NEXT_ON_SCROLL_UP = false;
+function getYouTubeVideoId(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  try {
+    const u = new URL(trimmed);
+
+    if (u.hostname === "youtu.be") {
+      const id = u.pathname.replace(/^\//, "").split("/")[0];
+      return id || null;
+    }
+
+    if (u.hostname.endsWith("youtube.com") || u.hostname.endsWith("youtube-nocookie.com")) {
+      if (u.pathname.startsWith("/embed/")) {
+        const id = u.pathname.slice("/embed/".length).split("/")[0];
+        return id || null;
+      }
+      if (u.pathname.startsWith("/shorts/")) {
+        const id = u.pathname.slice("/shorts/".length).split("/")[0];
+        return id || null;
+      }
+      const v = u.searchParams.get("v");
+      if (v) return v;
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const short = trimmed.match(/youtu\.be\/([^/?&#]+)/i);
+  if (short?.[1]) return short[1];
+
+  const embed = trimmed.match(/youtube\.com\/embed\/([^/?&#]+)/i);
+  if (embed?.[1]) return embed[1];
+
+  const shorts = trimmed.match(/youtube\.com\/shorts\/([^/?&#]+)/i);
+  if (shorts?.[1]) return shorts[1];
+
+  const watch = trimmed.match(/[?&]v=([^&?#]+)/i);
+  if (watch?.[1]) return watch[1];
+
+  return null;
+}
+
+const FALLBACK_CREDITS: WorkCreditLine[] = [
+  { label: "Prod.", name: "theeluu" },
+  { label: "Directer", name: "Hikaru Jamie Masamiya" },
+  { label: "Camera", name: "Shintaro Teramoto" },
+  { label: "Camera assistant", name: "Kosei Yamazaki" },
+  { label: "Color", name: "Hikaru Jamie Masamiya" },
+  { label: "Flower Design", name: "ai" },
+  { label: "Still Photography", name: "Fumiya Kawasaki" },
+  { label: "Act", name: "Fumiya Kawasaki, Gino" },
+  { label: "Styling", name: "Daichi Inamura (Intro)" },
+  { label: "Make-up artist", name: "Rei" },
+  { label: "Assistant", name: "Ikuya Sada" },
+  { label: "Special Thanks", name: "KAKKY" },
+  { label: "Lyric", name: "takeisme" },
+  { label: "Beat", name: "theeluu" },
+  { label: "Mix", name: "theeluu" },
+  { label: "Mastering", name: "theeluu" },
+];
 
 type Props = {
   data: WorkDetailItem | null;
-  credits: string[];
-  creditNames: string[];
 };
 
-export function WorkDetailClient({ data, credits, creditNames }: Props) {
+export function WorkDetailClient({ data }: Props) {
+  const creditLines =
+    data?.credits && data.credits.length > 0 ? data.credits : FALLBACK_CREDITS;
+
   const router = useRouter();
   const prefersReducedMotion = usePrefersReducedMotion();
+  const sandstormFadeStyle = {
+    ["--work-sandstorm-fade-ms" as string]: `${prefersReducedMotion ? 200 : SANDSTORM_ENTER_FADE_MS}ms`,
+  } as CSSProperties;
   const [exiting, setExiting] = useState(false);
   const [enterActive, setEnterActive] = useState(false);
-  /** 作品→作品の exit 中、マスク内で砂嵐を重ねる */
   const [sandstormExit, setSandstormExit] = useState(false);
-  /** 作品→作品の入場直後、マスク内で砂嵐を重ねてからフェードアウト */
   const [sandstormEnter, setSandstormEnter] = useState(false);
   const [sandstormEnterFading, setSandstormEnterFading] = useState(false);
-  /** CRT: `/works` 一覧からの遷移時のみ。直 URL・ホーム等・作品間 next は false */
   const [useCrtEnter, setUseCrtEnter] = useState(false);
-  /** sessionStorage 判定までサムネを隠し、CRT と内部入場のどちらかに揃える */
   const [bootReady, setBootReady] = useState(false);
   const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
-  /** transitionTo の router.push を遅延させるタイマー。アンマウント後に発火すると別ページへ誤遷移するので必ず解除 */
   const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
-  /** 前後遷移ジェスチャーはサムネ枠内のみ（window だと横スクロール・ピンチも拾う） */
-  const thumbnailGestureRef = useRef<HTMLDivElement | null>(null);
 
-  /** クライアント遷移で同一インスタンスが再利用されると transitionTo の exiting が残るためリセット */
+  const youtubeEmbedId =
+    data?.category === "music-video" && data?.videoUrl
+      ? getYouTubeVideoId(data.videoUrl)
+      : null;
+  const showYouTubePlayer = Boolean(youtubeEmbedId);
+
   useEffect(() => {
     exitingRef.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 作品 id 変更時に exiting をリセット（同一クライアントインスタンス再利用対策）
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExiting(false);
   }, [data?._id]);
 
@@ -99,7 +145,7 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     }
 
     if (!data?._id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- CMS 未取得時はサムネ待ちをスキップ
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootReady(true);
       return;
     }
@@ -112,11 +158,10 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
       sessionStorage.removeItem(STORAGE_ENTER);
       sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
       sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
-      // next / prev / transitionTo からの遷移: CRT は再生しない（CSS 入場のみ）
       setEnterActive(true);
       setUseCrtEnter(false);
       const allowSandstorm =
-        Boolean(data?.thumbnailUrl) &&
+        (Boolean(data?.thumbnailUrl) || showYouTubePlayer) &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       setSandstormEnter(allowSandstorm);
     } else {
@@ -126,13 +171,13 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
       const fromWorksList = stored === data._id;
       const allowCrt =
         fromWorksList &&
+        !showYouTubePlayer &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       setUseCrtEnter(allowCrt);
     }
     setBootReady(true);
-  }, [data?._id]);
+  }, [data?._id, data?.thumbnailUrl, data?.category, data?.videoUrl, showYouTubePlayer]);
 
-  /** layout では sessionStorage を消さない（Strict Mode の二重マウントでフラグが先に消えて CRT が死ぬ）。次フレームで消す */
   useEffect(() => {
     if (!data?._id) return;
     const stored = sessionStorage.getItem(STORAGE_CRT_FROM_WORKS_LIST);
@@ -167,7 +212,7 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
         sessionStorage.setItem(STORAGE_ENTER_TARGET_ID, nextId);
       }
       if (
-        data?.thumbnailUrl &&
+        (data?.thumbnailUrl || showYouTubePlayer) &&
         isWorkToWorkHref(href) &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ) {
@@ -180,7 +225,7 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
         router.push(href);
       }, EXIT_MS);
     },
-    [router, data?.thumbnailUrl]
+    [router, data?.thumbnailUrl, showYouTubePlayer],
   );
 
   useEffect(() => {
@@ -193,7 +238,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     };
   }, []);
 
-  /** 砂嵐ビデオの再生（exit / 入場どちらも currentTime 0 から） */
   useEffect(() => {
     if (!sandstormExit && !sandstormEnter) return;
     const v = sandstormVideoRef.current;
@@ -202,7 +246,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     void v.play().catch(() => {});
   }, [sandstormExit, sandstormEnter]);
 
-  /** 入場：しばらく見せてからフェードアウトしレイヤー解除 */
   useEffect(() => {
     if (!sandstormEnter) {
       setSandstormEnterFading(false);
@@ -221,7 +264,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     };
   }, [sandstormEnter]);
 
-  /** 複数件あるときだけ前後へ遷移（1件のみのときは nextId / prevId が自分自身になる） */
   const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
 
   const tryNavigateNext = useCallback(() => {
@@ -236,21 +278,7 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     transitionTo(`/works/${prevId}`);
   }, [data?._id, data?.prevId, transitionTo]);
 
-  const tryNavigateNextRef = useRef(tryNavigateNext);
-  const tryNavigatePrevRef = useRef(tryNavigatePrev);
-
-  useLayoutEffect(() => {
-    tryNavigateNextRef.current = tryNavigateNext;
-    tryNavigatePrevRef.current = tryNavigatePrev;
-  }, [tryNavigateNext, tryNavigatePrev]);
-
-  /**
-   * 入力・IME 以外で Backspace → 履歴バック（Chrome 向け補助）。
-   * 前後作品があるときはホイール／タッチで遷移するため登録しない（Backspace と縦スライドの意図がぶつかる）。
-   */
   useEffect(() => {
-    if (sequentialNav) return;
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Backspace" || e.isComposing) return;
       const el = e.target as HTMLElement | null;
@@ -262,101 +290,27 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [router, sequentialNav]);
-
-  useEffect(() => {
-    if (!sequentialNav) return;
-    const el = thumbnailGestureRef.current;
-    if (!el) return;
-
-    const onWheel = (e: WheelEvent) => {
-      // ピンチズーム（Chrome は ctrlKey）・横スクロール主体は無視
-      if (e.ctrlKey || e.metaKey) return;
-      const dy = e.deltaY;
-      const dx = e.deltaX;
-      if (dy === 0) return;
-      if (Math.abs(dx) >= Math.abs(dy)) return;
-      const isScrollUp = dy < 0;
-      const wantsNext = WHEEL_NEXT_ON_SCROLL_UP ? isScrollUp : !isScrollUp;
-      if (wantsNext) tryNavigateNextRef.current();
-      else tryNavigatePrevRef.current();
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: true });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [sequentialNav]);
-
-  useEffect(() => {
-    if (!sequentialNav) return;
-    const el = thumbnailGestureRef.current;
-    if (!el) return;
-
-    let startY = 0;
-    let startX = 0;
-    /** 2 本指以上で始まったジェスチャーはピンチ等とみなして無視 */
-    let multiTouchGesture = false;
-    const threshold = 48;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        multiTouchGesture = true;
-        return;
-      }
-      multiTouchGesture = false;
-      startY = e.touches[0]?.clientY ?? 0;
-      startX = e.touches[0]?.clientX ?? 0;
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length > 0) return;
-      if (multiTouchGesture) {
-        multiTouchGesture = false;
-        return;
-      }
-      const t = e.changedTouches[0];
-      if (!t) return;
-      const endY = t.clientY;
-      const endX = t.clientX;
-      const deltaY = endY - startY;
-      const deltaX = endX - startX;
-      // 横スワイプ主体は無視（縦のみ前後へ）
-      if (Math.abs(deltaX) >= Math.abs(deltaY)) return;
-      if (deltaY > threshold) tryNavigateNextRef.current();
-      else if (-deltaY > threshold) tryNavigatePrevRef.current();
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [sequentialNav]);
+  }, [router]);
 
   const showSandstorm =
-    Boolean(data?.thumbnailUrl) &&
-    (sandstormExit || sandstormEnter) &&
-    !prefersReducedMotion;
+    (Boolean(data?.thumbnailUrl) || showYouTubePlayer) &&
+    (sandstormExit || sandstormEnter);
 
-  const thumbnailContent = data?.thumbnailUrl ? (
+  const thumbnailContent = youtubeEmbedId ? (
     <>
-      <div className={TW_IMAGE_CLIP_LAYER}>
-        <Image
-          src={data.thumbnailUrl}
-          alt=""
-          fill
-          priority
-          sizes="(min-width: 768px) 60vw, 95vw"
-          className={TW_IMAGE_FILL_UNDER_MASK}
-          unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
+      <div className="absolute inset-0 overflow-hidden">
+        <LiteYouTubeEmbed
+          videoId={youtubeEmbedId}
+          title={data?.title ?? undefined}
+          className="absolute inset-0 z-0 h-full w-full scale-[0.983] border-0"
         />
         {showSandstorm && (
           <video
             ref={sandstormVideoRef}
             src={SANDSTORM_SRC}
-            className={`work-detail-sandstorm-video ${TW_IMAGE_FILL_UNDER_MASK} ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
-            style={getSandstormVideoSurfaceStyle()}
-            loop={sandstormExit}
+            style={sandstormFadeStyle}
+            className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
+            loop={sandstormExit || sandstormEnter}
             muted
             playsInline
             preload="auto"
@@ -365,17 +319,49 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
         )}
       </div>
       <img
-        src={MASK_SRC_SMALL}
+        src="/works-mask.svg"
         alt=""
         aria-hidden="true"
-        className={TW_MASK_LAYER_WORK_DETAIL}
+        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
+      />
+    </>
+  ) : data?.thumbnailUrl ? (
+    <>
+      <div className="absolute inset-0 overflow-hidden">
+        <Image
+          src={data.thumbnailUrl}
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 768px) 60vw, 95vw"
+          className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+          unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
+        />
+        {showSandstorm && (
+          <video
+            ref={sandstormVideoRef}
+            src={SANDSTORM_SRC}
+            style={sandstormFadeStyle}
+            className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
+            loop={sandstormExit || sandstormEnter}
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden
+          />
+        )}
+      </div>
+      <img
+        src="/works-mask.svg"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
       />
     </>
   ) : (
     <div className="absolute inset-0 rounded-[16px] bg-white/10" />
   );
 
-  /** 作品間：画像のフェード出し入れはせず、マスク内の砂嵐で挟む（テキスト等は従来の exit/enter） */
   const imgAnim =
     exiting && sandstormExit
       ? ""
@@ -404,18 +390,19 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
         style={{ gridTemplateRows: "1fr" }}
       >
         <div className="md:[grid-area:1/1] relative md:z-20 pointer-events-none self-start w-full">
-          <div className="pointer-events-auto">
-            <Header />
-          </div>
+          <Header />
         </div>
 
         <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none">
-          <div className="layout-grid md:items-start pointer-events-auto">
+          <div className="layout-grid md:items-start pointer-events-auto md:pointer-events-none">
             <div
-              className={`col-span-9 md:col-span-8 md:[grid-row-start:7] md:[grid-row-end:9] ${textAnim}`}
+              className={`col-span-9 md:col-span-8 md:[grid-row-start:7] md:[grid-row-end:9] md:pointer-events-auto ${textAnim}`}
             >
-              <p>Works / Music Video /</p>
-              <h2 className="text-[26px] leading-tight md:text-[32px] mt-[17px]">
+              <p>
+                Works /{" "}
+                {data?.category === "sound-effect" ? "Sound Effect" : "Music Video"} /
+              </p>
+              <h2 className="text-[26px] leading-tight md:text-[32px]">
                 {data?.title ?? "Saiwai / Takeisme"}
               </h2>
               <h2 className="text-[26px] leading-tight md:text-[32px]">
@@ -430,10 +417,9 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
           className="md:[grid-area:1/1] md:z-0 md:flex md:items-center md:justify-center"
         >
           <div
-            ref={thumbnailGestureRef}
-            className={`${TW_SHELL_DETAIL_THUMB_WORK} ${imgAnim} ${!bootReady ? "opacity-0" : ""}`}
+            className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 touch-auto ${imgAnim} ${!bootReady ? "opacity-0" : ""}`}
           >
-            {bootReady && useCrtEnter ? (
+            {bootReady && useCrtEnter && !showYouTubePlayer ? (
               <AstroidFlashProvider>
                 <AstroidRevealCell>{thumbnailContent}</AstroidRevealCell>
               </AstroidFlashProvider>
@@ -443,18 +429,28 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
           </div>
         </div>
 
-        <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:pb-[34px]">
-          <div className="layout-grid pointer-events-auto">
-            <div className="col-span-6 md:col-span-4 flex flex-col gap-1">
-              <a
-                href={data?.videoUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link_co flex items-center gap-2 whitespace-nowrap"
-              >
-                <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
-                <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
-              </a>
+        <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:mb-[17px]">
+          <div className="layout-grid pointer-events-auto md:pointer-events-none">
+            <div className="col-span-3 md:col-span-2 flex flex-col gap-1 md:pointer-events-auto justify-end">
+              {data?.videoUrl ? (
+                <a
+                  href={data.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link_co flex items-center gap-2 whitespace-nowrap"
+                >
+                  <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
+                  <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+                </a>
+              ) : (
+                <span
+                  className="link_co flex items-center gap-2 whitespace-nowrap"
+                  aria-disabled="true"
+                >
+                  <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
+                  <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+                </span>
+              )}
               <span
                 className="link_co flex items-center gap-2 whitespace-nowrap"
                 aria-disabled="true"
@@ -470,21 +466,59 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
                 <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
               </span>
             </div>
-            <div className="col-start-8 col-span-2 md:col-start-17 md:col-span-2 self-end">
-              <SoundToggle />
+            <div className="col-start-8 col-span-2 md:col-start-17 md:col-span-2 self-end flex flex-col items-start gap-[34px] md:pointer-events-auto">
+              {sequentialNav && (
+                <div className="flex flex-col items-start gap-1">
+                  <button
+                    type="button"
+                    onClick={tryNavigatePrev}
+                    className="flex items-center gap-2 text-left text-[14px] leading-[1.1] md:text-[15px] cursor-pointer hover:opacity-70 transition-opacity"
+                  >
+                    <Image
+                      src="/arrow-down.svg"
+                      alt=""
+                      width={11}
+                      height={11}
+                      className="shrink-0 rotate-180"
+                      aria-hidden
+                    />
+                    <ScrambleText text="Previous" mode="lap" speedMs={40} durationMs={400} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={tryNavigateNext}
+                    className="flex items-center gap-2 text-left text-[14px] leading-[1.1] md:text-[15px] cursor-pointer hover:opacity-70 transition-opacity"
+                  >
+                    <Image
+                      src="/arrow-down.svg"
+                      alt=""
+                      width={11}
+                      height={11}
+                      className="shrink-0"
+                      aria-hidden
+                    />
+                    <ScrambleText text="Next" mode="lap" speedMs={40} durationMs={400} />
+                  </button>
+                </div>
+              )}
+              <SoundToggle
+                audioSrc={
+                  data?.category === "sound-effect" ? data.soundUrl ?? null : null
+                }
+              />
             </div>
           </div>
         </div>
 
         <div className="mt-[calc(2*var(--grid-row))] pb-[34px] md:mt-0 md:pb-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none">
-          <div className="layout-grid md:items-start pointer-events-none">
+          <div className="layout-grid md:items-start pointer-events-auto md:pointer-events-none">
             <div
-              className={`col-start-3 col-span-7 md:col-span-5 md:col-start-14 md:[grid-row-start:8] grid [grid-template-columns:subgrid] gap-y-0 content-start ${creditsAnim}`}
+              className={`col-start-3 col-span-7 md:col-span-5 md:col-start-14 md:[grid-row-start:8] grid [grid-template-columns:subgrid] gap-y-0 content-start md:pointer-events-auto ${creditsAnim}`}
             >
-              {credits.map((label, i) => (
-                <Fragment key={label}>
-                  <p className="col-span-3 md:col-span-2">{label}</p>
-                  <p className="col-span-4 md:col-span-3">{creditNames[i]}</p>
+              {creditLines.map((line, i) => (
+                <Fragment key={line._key ?? `${line.label}-${i}`}>
+                  <p className="col-span-3 md:col-span-2">{line.label}</p>
+                  <p className="col-span-4 md:col-span-3">{line.name}</p>
                 </Fragment>
               ))}
             </div>

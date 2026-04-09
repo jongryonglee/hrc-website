@@ -4,10 +4,11 @@ import { ScrambleText } from "./ScrambleText";
 
 export const Header = () => {
   return (
-    <header >
-      <div className="layout-grid items-start md:[&>div]:[grid-row:span_6]">
+    <header className="pointer-events-none">
+      {/* md: グリッド全面がヒット領域になると中央のレイヤー（例: Works 詳細の動画）を覆う */}
+      <div className="layout-grid items-start md:[&>div]:[grid-row:span_6] pointer-events-auto md:pointer-events-none">
         {/* ロゴ */}
-        <div className="flex h-[17px] w-[46px] items-start">
+        <div className="flex h-[17px] w-[46px] items-start md:pointer-events-auto">
           <Link href="/" className="hover:opacity-70 transition-opacity">
             <Image
               src="/logo-main.svg"
@@ -21,7 +22,7 @@ export const Header = () => {
         </div>
 
         {/* メインナビ */}
-        <div className="col-start-5 md:col-start-14 flex items-start">
+        <div className="col-start-5 md:col-start-14 flex items-start md:pointer-events-auto">
           <div className="text-left whitespace-nowrap">
           <Link href="/works">
             <p>
@@ -68,7 +69,7 @@ export const Header = () => {
         </div>
 
         {/* サブナビ */}
-        <div className="col-start-8 md:col-start-18 flex items-start">
+        <div className="col-start-8 md:col-start-18 flex items-start md:pointer-events-auto">
           <div className="text-left">
           <Link href="/contact">
             <p>

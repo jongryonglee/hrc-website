@@ -1,15 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { WorkListItem } from "@/app/lib/cmsTypes";
-import {
-  MASK_SRC_SMALL,
-  TW_CELL_WORKS_LIST_HOVER,
-  TW_IMAGE_FILL_UNDER_MASK,
-  TW_MASK_LAYER_WORKS_LIST_HOVER,
-} from "@/app/lib/workThumbnailLayout";
 import { useCanHover } from "@/app/hooks/useCanHover";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { ScrambleText } from "../components/ScrambleText";
@@ -52,6 +48,9 @@ export function WorksPageClient({ initialItems }: Props) {
       ? `all${counts.all} / music video${counts.musicVideo} / sound effect${counts.soundEffect}`
       : "all1 / music video1 / sound effect0";
 
+  const showHoverPreview =
+    !!(hovered?.thumbnailUrl && hoverIndex !== null);
+
   return (
     <div className="flex min-h-full flex-col flex-1">
       <Header />
@@ -68,7 +67,11 @@ export function WorksPageClient({ initialItems }: Props) {
           </div>
         </div>
 
-        <section className="mt-[15px] md:mt-[17px]">
+        <section
+          className={`mt-[15px] md:mt-[17px]${
+            canHover && !showHoverPreview ? " pb-[calc(600px*204/268)]" : ""
+          }`}
+        >
           <div className="layout-grid">
             <div className="col-start-3 md:[grid-row:span_2] whitespace-nowrap">
               <p>(produced works)</p>
@@ -172,17 +175,20 @@ export function WorksPageClient({ initialItems }: Props) {
               }}
             >
               <div className="flex justify-center">
-                <div className={TW_CELL_WORKS_LIST_HOVER}>
-                  <img
+                <div className="relative aspect-[268/204] w-[600px] -translate-y-[51px]">
+                  <Image
                     src={hovered.thumbnailUrl}
                     alt=""
-                    className={`absolute inset-0 h-full w-full ${TW_IMAGE_FILL_UNDER_MASK}`}
+                    fill
+                    sizes="600px"
+                    className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+                    unoptimized={nextImageUnoptimized(hovered.thumbnailUrl)}
                   />
                   <img
-                    src={MASK_SRC_SMALL}
+                    src="/works-mask.svg"
                     alt=""
                     aria-hidden="true"
-                    className={TW_MASK_LAYER_WORKS_LIST_HOVER}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
                   />
                 </div>
               </div>

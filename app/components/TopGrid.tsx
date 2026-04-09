@@ -4,14 +4,6 @@ import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
-import {
-  IMAGE_SIZES_TOP_GRID_CELL,
-  TW_CELL_TOP_GRID,
-  TW_IMAGE_CLIP_LAYER,
-  TW_IMAGE_FILL_UNDER_MASK,
-  TW_MASK_LAYER_TOP_GRID,
-  maskSrcForTopGridCell,
-} from "@/app/lib/workThumbnailLayout";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
 
@@ -125,22 +117,21 @@ function modSlot(i: number): number {
   return ((i % SLOT_COUNT) + SLOT_COUNT) % SLOT_COUNT;
 }
 
-function smallUrlForBlock(
-  base: string[],
+function smallSlotForBlock(
+  base: SlotEntry[],
   letter: string,
   blockIndex: number,
-): string {
+): SlotEntry {
   const idx = LETTER_TO_INDEX[letter];
   if (idx === undefined) return base[0];
   const start = modSlot(blockIndex * BIG_SLOTS_PER_PAIR);
-  // ブロックが進むごとに a…o 全体を同じオフセットで回す（小セルもスクロールで変わる）
   return base[modSlot(idx + start)];
 }
 
 /** 巡目1: 小セルはブロックオフセット付き。大セル e,h,i はブロック内 0,1,2 番目 */
-function buildUrlsForCycle1(base: string[], blockIndex: number): string[] {
+function buildSlotsForCycle1(base: SlotEntry[], blockIndex: number): SlotEntry[] {
   const start = modSlot(blockIndex * BIG_SLOTS_PER_PAIR);
-  const bigByName: Record<string, string> = {
+  const bigByName: Record<string, SlotEntry> = {
     e: base[modSlot(start + 0)],
     h: base[modSlot(start + 1)],
     i: base[modSlot(start + 2)],
@@ -150,14 +141,14 @@ function buildUrlsForCycle1(base: string[], blockIndex: number): string[] {
     if (GRID_CYCLE1.bigMaskAreas.has(area.name)) {
       return bigByName[area.name]!;
     }
-    return smallUrlForBlock(base, area.name, blockIndex);
+    return smallSlotForBlock(base, area.name, blockIndex);
   });
 }
 
 /** 巡目2: 小セルはブロックオフセット付き。大セル f,i,j は同ブロックで 3,4,5 番目 */
-function buildUrlsForCycle2(base: string[], blockIndex: number): string[] {
+function buildSlotsForCycle2(base: SlotEntry[], blockIndex: number): SlotEntry[] {
   const start = modSlot(blockIndex * BIG_SLOTS_PER_PAIR);
-  const bigByName: Record<string, string> = {
+  const bigByName: Record<string, SlotEntry> = {
     f: base[modSlot(start + 3)],
     i: base[modSlot(start + 4)],
     j: base[modSlot(start + 5)],
@@ -167,20 +158,21 @@ function buildUrlsForCycle2(base: string[], blockIndex: number): string[] {
     if (GRID_CYCLE2.bigMaskAreas.has(area.name)) {
       return bigByName[area.name]!;
     }
-    return smallUrlForBlock(base, area.name, blockIndex);
+    return smallSlotForBlock(base, area.name, blockIndex);
   });
 }
 
-/** CMS がなければ a…o 順に、直前と同じフォールバック URL だけ避ける */
-function buildThumbnailUrls(cmsItems: TopGridWorkItem[]): string[] {
+type SlotEntry = { url: string };
+
+function buildThumbnailSlots(cmsItems: TopGridWorkItem[]): SlotEntry[] {
   const n = FALLBACK_IMAGES.length;
-  const out: string[] = [];
+  const out: SlotEntry[] = [];
   let prev: string | null = null;
 
   for (let i = 0; i < SLOT_COUNT; i++) {
     const cms = cmsItems[i]?.thumbnailUrl;
     if (cms) {
-      out[i] = cms;
+      out[i] = { url: cms };
       prev = cms;
       continue;
     }
@@ -193,7 +185,7 @@ function buildThumbnailUrls(cmsItems: TopGridWorkItem[]): string[] {
         break;
       }
     }
-    out[i] = picked;
+    out[i] = { url: picked };
     prev = picked;
   }
   return out;
@@ -201,12 +193,12 @@ function buildThumbnailUrls(cmsItems: TopGridWorkItem[]): string[] {
 
 function GridCopy({
   variant,
-  urls,
+  slots,
   innerRef,
   cellFlash,
 }: {
   variant: 1 | 2;
-  urls: string[];
+  slots: SlotEntry[];
   innerRef?: React.RefObject<HTMLDivElement | null>;
   cellFlash?: boolean;
 }) {
@@ -226,20 +218,22 @@ function GridCopy({
       }}
     >
       {cfg.areas.map((area, i) => {
-        const src = urls[i];
-        const maskSrc = maskSrcForTopGridCell(cfg.bigMaskAreas.has(area.name));
+        const slot = slots[i];
+        const maskSrc = cfg.bigMaskAreas.has(area.name)
+          ? "/icon/works-mask-big.svg"
+          : "/works-mask.svg";
 
         const media = (
           <>
-            <div className={TW_IMAGE_CLIP_LAYER}>
+            <div className="absolute inset-0 overflow-hidden">
               <Image
-                src={src}
+                src={slot.url}
                 alt=""
                 fill
-                sizes={IMAGE_SIZES_TOP_GRID_CELL}
-                className={TW_IMAGE_FILL_UNDER_MASK}
+                sizes="(max-width: 767px) 268px"
+                className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
                 draggable={false}
-                unoptimized={nextImageUnoptimized(src)}
+                unoptimized={nextImageUnoptimized(slot.url)}
               />
             </div>
             <img
@@ -247,7 +241,7 @@ function GridCopy({
               alt=""
               aria-hidden={true}
               draggable={false}
-              className={TW_MASK_LAYER_TOP_GRID}
+              className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none"
             />
           </>
         );
@@ -255,7 +249,7 @@ function GridCopy({
         return (
           <div
             key={`${variant}-${area.name}`}
-            className={TW_CELL_TOP_GRID}
+            className="relative isolate aspect-[268/204]"
             style={{ gridArea: area.name }}
           >
             {cellFlash ? (
@@ -282,15 +276,15 @@ export function TopGrid({
 
   const prefersReducedMotion = usePrefersReducedMotion();
 
-  const baseUrls = useMemo(() => buildThumbnailUrls(cmsItems), [cmsItems]);
+  const baseSlots = useMemo(() => buildThumbnailSlots(cmsItems), [cmsItems]);
 
-  const urlsByBlock = useMemo(
+  const slotsByBlock = useMemo(
     () =>
       Array.from({ length: BIG_BLOCK_COUNT }, (_, blockIndex) => ({
-        cycle1: buildUrlsForCycle1(baseUrls, blockIndex),
-        cycle2: buildUrlsForCycle2(baseUrls, blockIndex),
+        cycle1: buildSlotsForCycle1(baseSlots, blockIndex),
+        cycle2: buildSlotsForCycle2(baseSlots, blockIndex),
       })),
-    [baseUrls],
+    [baseSlots],
   );
 
   useEffect(() => {
@@ -347,7 +341,7 @@ export function TopGrid({
         className="flex shrink-0"
         style={{ gap: GRID_GAP_PX }}
       >
-        {urlsByBlock.map((row, blockIndex) => (
+        {slotsByBlock.map((row, blockIndex) => (
           <div
             key={blockIndex}
             className="flex shrink-0"
@@ -355,19 +349,19 @@ export function TopGrid({
           >
             <GridCopy
               variant={1}
-              urls={row.cycle1}
+              slots={row.cycle1}
               cellFlash={cellFlash}
             />
             <GridCopy
               variant={2}
-              urls={row.cycle2}
+              slots={row.cycle2}
               cellFlash={cellFlash}
             />
           </div>
         ))}
       </div>
       <div className="flex shrink-0" style={{ gap: GRID_GAP_PX }}>
-        {urlsByBlock.map((row, blockIndex) => (
+        {slotsByBlock.map((row, blockIndex) => (
           <div
             key={blockIndex}
             className="flex shrink-0"
@@ -375,12 +369,12 @@ export function TopGrid({
           >
             <GridCopy
               variant={1}
-              urls={row.cycle1}
+              slots={row.cycle1}
               cellFlash={cellFlash}
             />
             <GridCopy
               variant={2}
-              urls={row.cycle2}
+              slots={row.cycle2}
               cellFlash={cellFlash}
             />
           </div>
