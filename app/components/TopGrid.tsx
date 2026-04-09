@@ -8,14 +8,14 @@ import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
 
 const FALLBACK_IMAGES = [
-  "/images/works-1.png",
-  "/images/works-2.png",
-  "/images/works-3.png",
-  "/images/works-4.png",
-  "/images/works-5.png",
-  "/images/works-6.png",
-  "/images/works-7.png",
-  "/images/works-8.png",
+  "/images/works-1.webp",
+  "/images/works-2.webp",
+  "/images/works-3.webp",
+  "/images/works-4.webp",
+  "/images/works-5.webp",
+  "/images/works-6.webp",
+  "/images/works-7.webp",
+  "/images/works-8.webp",
 ];
 
 const SLOT_COUNT = 15;

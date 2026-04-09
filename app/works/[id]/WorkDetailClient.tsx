@@ -26,7 +26,7 @@ const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
 const SANDSTORM_ENTER_HOLD_MS = 800;
 const NAV_COOLDOWN_MS = 1400;
-const EXIT_MS = 300;
+const EXIT_MS = 420;
 
 function isWorkToWorkHref(href: string) {
   return /^\/works\/[^/]+$/.test(href);
@@ -108,7 +108,6 @@ export function WorkDetailClient({ data }: Props) {
   const [sandstormExit, setSandstormExit] = useState(false);
   const [sandstormEnter, setSandstormEnter] = useState(false);
   const [useCrtEnter, setUseCrtEnter] = useState(false);
-  const [bootReady, setBootReady] = useState(false);
   const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
   const transitionPushTimerRef = useRef<number | null>(null);
@@ -127,6 +126,8 @@ export function WorkDetailClient({ data }: Props) {
   }, [data?._id]);
 
   useLayoutEffect(() => {
+    /* sessionStorage / matchMedia を初回ペイント前に反映（Strict Mode 対応含む） */
+    /* eslint-disable react-hooks/set-state-in-effect */
     const lockStr = sessionStorage.getItem(STORAGE_LOCK);
     if (lockStr) {
       const until = parseInt(lockStr, 10);
@@ -137,23 +138,21 @@ export function WorkDetailClient({ data }: Props) {
     }
 
     if (!data?._id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setBootReady(true);
       return;
     }
 
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const enter = sessionStorage.getItem(STORAGE_ENTER);
     const targetId = sessionStorage.getItem(STORAGE_ENTER_TARGET_ID);
     const isSequentialEnter = enter === "1" && targetId === data._id;
 
     if (isSequentialEnter) {
-      // STORAGE_ENTER / TARGET_ID は砂嵐終了まで残す（Strict Mode の再マウントでも同じ入場として扱う）
+      /* STORAGE_ENTER / TARGET_ID は砂嵐終了まで残す（Strict Mode の再マウントでも同じ入場として扱う） */
       sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
       setEnterActive(true);
       setUseCrtEnter(false);
       const allowSandstorm =
-        (Boolean(data?.thumbnailUrl) || showYouTubePlayer) &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        (Boolean(data?.thumbnailUrl) || showYouTubePlayer) && !reduceMotion;
       setSandstormEnter(allowSandstorm);
       if (!allowSandstorm) {
         try {
@@ -168,13 +167,9 @@ export function WorkDetailClient({ data }: Props) {
       setSandstormEnter(false);
       const stored = sessionStorage.getItem(STORAGE_CRT_FROM_WORKS_LIST);
       const fromWorksList = stored === data._id;
-      const allowCrt =
-        fromWorksList &&
-        !showYouTubePlayer &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      setUseCrtEnter(allowCrt);
+      setUseCrtEnter(fromWorksList && !showYouTubePlayer && !reduceMotion);
     }
-    setBootReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [data?._id, data?.thumbnailUrl, data?.category, data?.videoUrl, showYouTubePlayer]);
 
   useEffect(() => {
@@ -298,7 +293,7 @@ export function WorkDetailClient({ data }: Props) {
       ref={sandstormVideoRef}
       src={SANDSTORM_SRC}
       className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
-      loop={sandstormExit || sandstormEnter}
+      loop
       muted
       playsInline
       preload="auto"
@@ -306,39 +301,46 @@ export function WorkDetailClient({ data }: Props) {
     />
   ) : null;
 
-  const thumbnailContent =
-    youtubeEmbedId || data?.thumbnailUrl ? (
-      <>
-        <div className="absolute inset-0 overflow-hidden">
-          {youtubeEmbedId ? (
-            <LiteYouTubeEmbed
-              videoId={youtubeEmbedId}
-              title={data?.title ?? undefined}
-              className="absolute inset-0 z-0 h-full w-full scale-[0.983] border-0"
-            />
-          ) : (
-            <Image
-              src={data!.thumbnailUrl!}
-              alt=""
-              fill
-              priority
-              sizes="(min-width: 768px) 60vw, 95vw"
-              className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
-              unoptimized={nextImageUnoptimized(data!.thumbnailUrl!)}
-            />
-          )}
-          {sandstormVideoEl}
-        </div>
-        <img
-          src="/works-mask.svg"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
+  const worksMask = (
+    <img
+      src="/works-mask.svg"
+      alt=""
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
+    />
+  );
+
+  const thumbnailContent = youtubeEmbedId ? (
+    <>
+      <div className="absolute inset-0 overflow-hidden">
+        <LiteYouTubeEmbed
+          videoId={youtubeEmbedId}
+          title={data?.title ?? undefined}
+          className="absolute inset-0 z-0 h-full w-full scale-[0.983] border-0"
         />
-      </>
-    ) : (
-      <div className="absolute inset-0 rounded-[16px] bg-white/10" />
-    );
+        {sandstormVideoEl}
+      </div>
+      {worksMask}
+    </>
+  ) : data?.thumbnailUrl ? (
+    <>
+      <div className="absolute inset-0 overflow-hidden">
+        <Image
+          src={data.thumbnailUrl}
+          alt=""
+          fill
+          priority
+          sizes="(min-width: 768px) 60vw, 95vw"
+          className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+          unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
+        />
+        {sandstormVideoEl}
+      </div>
+      {worksMask}
+    </>
+  ) : (
+    <div className="absolute inset-0 rounded-[16px] bg-white/10" />
+  );
 
   const imgAnim =
     exiting && sandstormExit
@@ -399,9 +401,9 @@ export function WorkDetailClient({ data }: Props) {
           className="md:[grid-area:1/1] md:z-0 md:flex md:items-center md:justify-center"
         >
           <div
-            className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 touch-auto ${imgAnim} ${!bootReady ? "opacity-0" : ""}`}
+            className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 touch-auto ${imgAnim}`}
           >
-            {bootReady && useCrtEnter && !showYouTubePlayer ? (
+            {useCrtEnter && !showYouTubePlayer ? (
               <AstroidFlashProvider>
                 <AstroidRevealCell>{thumbnailContent}</AstroidRevealCell>
               </AstroidFlashProvider>
