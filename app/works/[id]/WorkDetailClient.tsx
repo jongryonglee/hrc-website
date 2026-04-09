@@ -26,7 +26,7 @@ const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
 const SANDSTORM_ENTER_HOLD_MS = 800;
 const NAV_COOLDOWN_MS = 1400;
-const EXIT_MS = 420;
+const EXIT_MS = 300;
 
 function isWorkToWorkHref(href: string) {
   return /^\/works\/[^/]+$/.test(href);
@@ -147,8 +147,7 @@ export function WorkDetailClient({ data }: Props) {
     const isSequentialEnter = enter === "1" && targetId === data._id;
 
     if (isSequentialEnter) {
-      sessionStorage.removeItem(STORAGE_ENTER);
-      sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
+      // STORAGE_ENTER / TARGET_ID は砂嵐終了まで残す（Strict Mode の再マウントでも同じ入場として扱う）
       sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
       setEnterActive(true);
       setUseCrtEnter(false);
@@ -156,6 +155,14 @@ export function WorkDetailClient({ data }: Props) {
         (Boolean(data?.thumbnailUrl) || showYouTubePlayer) &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       setSandstormEnter(allowSandstorm);
+      if (!allowSandstorm) {
+        try {
+          sessionStorage.removeItem(STORAGE_ENTER);
+          sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
+        } catch {
+          /* ignore */
+        }
+      }
     } else {
       setEnterActive(false);
       setSandstormEnter(false);
@@ -242,6 +249,12 @@ export function WorkDetailClient({ data }: Props) {
     if (!sandstormEnter) return;
     const remove = window.setTimeout(() => {
       setSandstormEnter(false);
+      try {
+        sessionStorage.removeItem(STORAGE_ENTER);
+        sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
+      } catch {
+        /* ignore */
+      }
     }, SANDSTORM_ENTER_HOLD_MS);
     return () => {
       clearTimeout(remove);
@@ -280,69 +293,52 @@ export function WorkDetailClient({ data }: Props) {
     (Boolean(data?.thumbnailUrl) || showYouTubePlayer) &&
     (sandstormExit || sandstormEnter);
 
-  const thumbnailContent = youtubeEmbedId ? (
-    <>
-      <div className="absolute inset-0 overflow-hidden">
-        <LiteYouTubeEmbed
-          videoId={youtubeEmbedId}
-          title={data?.title ?? undefined}
-          className="absolute inset-0 z-0 h-full w-full scale-[0.983] border-0"
-        />
-        {showSandstorm && (
-          <video
-            ref={sandstormVideoRef}
-            src={SANDSTORM_SRC}
-            className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
-            loop={sandstormExit || sandstormEnter}
-            muted
-            playsInline
-            preload="auto"
-            aria-hidden
-          />
-        )}
-      </div>
-      <img
-        src="/works-mask.svg"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
-      />
-    </>
-  ) : data?.thumbnailUrl ? (
-    <>
-      <div className="absolute inset-0 overflow-hidden">
-        <Image
-          src={data.thumbnailUrl}
+  const sandstormVideoEl = showSandstorm ? (
+    <video
+      ref={sandstormVideoRef}
+      src={SANDSTORM_SRC}
+      className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
+      loop={sandstormExit || sandstormEnter}
+      muted
+      playsInline
+      preload="auto"
+      aria-hidden
+    />
+  ) : null;
+
+  const thumbnailContent =
+    youtubeEmbedId || data?.thumbnailUrl ? (
+      <>
+        <div className="absolute inset-0 overflow-hidden">
+          {youtubeEmbedId ? (
+            <LiteYouTubeEmbed
+              videoId={youtubeEmbedId}
+              title={data?.title ?? undefined}
+              className="absolute inset-0 z-0 h-full w-full scale-[0.983] border-0"
+            />
+          ) : (
+            <Image
+              src={data!.thumbnailUrl!}
+              alt=""
+              fill
+              priority
+              sizes="(min-width: 768px) 60vw, 95vw"
+              className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+              unoptimized={nextImageUnoptimized(data!.thumbnailUrl!)}
+            />
+          )}
+          {sandstormVideoEl}
+        </div>
+        <img
+          src="/works-mask.svg"
           alt=""
-          fill
-          priority
-          sizes="(min-width: 768px) 60vw, 95vw"
-          className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
-          unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
         />
-        {showSandstorm && (
-          <video
-            ref={sandstormVideoRef}
-            src={SANDSTORM_SRC}
-            className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
-            loop={sandstormExit || sandstormEnter}
-            muted
-            playsInline
-            preload="auto"
-            aria-hidden
-          />
-        )}
-      </div>
-      <img
-        src="/works-mask.svg"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
-      />
-    </>
-  ) : (
-    <div className="absolute inset-0 rounded-[16px] bg-white/10" />
-  );
+      </>
+    ) : (
+      <div className="absolute inset-0 rounded-[16px] bg-white/10" />
+    );
 
   const imgAnim =
     exiting && sandstormExit
