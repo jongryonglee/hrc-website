@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  type CSSProperties,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -11,7 +10,6 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { OfficeRecDetailItem } from "@/app/lib/cmsTypes";
-import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { Header } from "../../components/Header";
 import { SoundToggle } from "../../components/SoundToggle";
@@ -23,7 +21,6 @@ const STORAGE_LOCK = "officeRecDetailNavLockUntil";
 
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
 const SANDSTORM_ENTER_HOLD_MS = 380;
-const SANDSTORM_ENTER_FADE_MS = 480;
 
 const NAV_COOLDOWN_MS = 1400;
 const EXIT_MS = 420;
@@ -40,15 +37,10 @@ type Props = {
 
 export function OfficeRecDetailClient({ data }: Props) {
   const router = useRouter();
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const sandstormFadeStyle = {
-    ["--work-sandstorm-fade-ms" as string]: `${prefersReducedMotion ? 200 : SANDSTORM_ENTER_FADE_MS}ms`,
-  } as CSSProperties;
   const [exiting, setExiting] = useState(false);
   const [enterActive, setEnterActive] = useState(false);
   const [sandstormExit, setSandstormExit] = useState(false);
   const [sandstormEnter, setSandstormEnter] = useState(false);
-  const [sandstormEnterFading, setSandstormEnterFading] = useState(false);
   const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
   const transitionPushTimerRef = useRef<number | null>(null);
@@ -146,19 +138,11 @@ export function OfficeRecDetailClient({ data }: Props) {
   }, [sandstormExit, sandstormEnter]);
 
   useEffect(() => {
-    if (!sandstormEnter) {
-      setSandstormEnterFading(false);
-      return;
-    }
-    const startFade = window.setTimeout(() => {
-      setSandstormEnterFading(true);
-    }, SANDSTORM_ENTER_HOLD_MS);
+    if (!sandstormEnter) return;
     const remove = window.setTimeout(() => {
       setSandstormEnter(false);
-      setSandstormEnterFading(false);
-    }, SANDSTORM_ENTER_HOLD_MS + SANDSTORM_ENTER_FADE_MS + 50);
+    }, SANDSTORM_ENTER_HOLD_MS);
     return () => {
-      clearTimeout(startFade);
       clearTimeout(remove);
     };
   }, [sandstormEnter]);
@@ -269,8 +253,7 @@ export function OfficeRecDetailClient({ data }: Props) {
           <video
             ref={sandstormVideoRef}
             src={SANDSTORM_SRC}
-            style={sandstormFadeStyle}
-            className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
+            className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
             loop={sandstormExit || sandstormEnter}
             muted
             playsInline
@@ -302,9 +285,11 @@ export function OfficeRecDetailClient({ data }: Props) {
 
   const textAnim = exiting
     ? "work-detail-exit"
-    : enterActive
-      ? "work-detail-enter-text"
-      : "";
+    : enterActive && sandstormEnter
+      ? "opacity-0"
+      : enterActive
+        ? "work-detail-enter-text"
+        : "";
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
