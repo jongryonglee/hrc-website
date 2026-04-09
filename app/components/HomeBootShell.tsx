@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
-import { SWITCH_BOOT_ANIMATION_MS } from "@/app/lib/homeBootTiming";
 import { TopFooter } from "./TopFooter";
 import { TopGrid } from "./TopGrid";
 
@@ -16,12 +15,16 @@ export function HomeBootShell({ cmsItems }: { cmsItems: TopGridWorkItem[] }) {
     setBootDoneByTimer(true);
   }, []);
 
-  /** animationend が来ない場合のみ（CSS と JS のズレ対策） */
+  /** animationend が来ない場合のみ（CSS `--switch-boot-animation-ms` とズレ対策） */
   useEffect(() => {
     if (prefersReducedMotion) return;
+    const raw = getComputedStyle(document.documentElement)
+      .getPropertyValue("--switch-boot-animation-ms")
+      .trim();
+    const ms = parseInt(raw, 10) || 2333;
     const id = window.setTimeout(() => {
       setBootDoneByTimer((done) => (done ? done : true));
-    }, SWITCH_BOOT_ANIMATION_MS + 120);
+    }, ms + 120);
     return () => clearTimeout(id);
   }, [prefersReducedMotion]);
 

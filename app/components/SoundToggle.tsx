@@ -9,7 +9,7 @@ export function SoundToggle() {
     <button
       type="button"
       onClick={() => setSoundOn((prev) => !prev)}
-      className="text-left text-[13px] md:text-[14px] cursor-pointer"
+      className="text-left text-[14px] leading-[1.1] md:text-[15px] cursor-pointer"
     >
       <p className={`transition-opacity duration-200 ${soundOn ? "opacity-30" : "opacity-100"}`}>
         Sound ON

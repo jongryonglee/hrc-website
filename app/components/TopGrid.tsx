@@ -4,14 +4,6 @@ import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
-import {
-  IMAGE_SIZES_TOP_GRID_CELL,
-  TW_CELL_TOP_GRID,
-  TW_IMAGE_CLIP_LAYER,
-  TW_IMAGE_FILL_UNDER_MASK,
-  TW_MASK_LAYER_TOP_GRID,
-  maskSrcForTopGridCell,
-} from "@/app/lib/workThumbnailLayout";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
 
@@ -227,17 +219,19 @@ function GridCopy({
     >
       {cfg.areas.map((area, i) => {
         const src = urls[i];
-        const maskSrc = maskSrcForTopGridCell(cfg.bigMaskAreas.has(area.name));
+        const maskSrc = cfg.bigMaskAreas.has(area.name)
+          ? "/icon/works-mask-big.svg"
+          : "/works-mask.svg";
 
         const media = (
           <>
-            <div className={TW_IMAGE_CLIP_LAYER}>
+            <div className="absolute inset-0 overflow-hidden">
               <Image
                 src={src}
                 alt=""
                 fill
-                sizes={IMAGE_SIZES_TOP_GRID_CELL}
-                className={TW_IMAGE_FILL_UNDER_MASK}
+                sizes="(max-width: 767px) 268px"
+                className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
                 draggable={false}
                 unoptimized={nextImageUnoptimized(src)}
               />
@@ -247,7 +241,7 @@ function GridCopy({
               alt=""
               aria-hidden={true}
               draggable={false}
-              className={TW_MASK_LAYER_TOP_GRID}
+              className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none"
             />
           </>
         );
@@ -255,7 +249,7 @@ function GridCopy({
         return (
           <div
             key={`${variant}-${area.name}`}
-            className={TW_CELL_TOP_GRID}
+            className="relative isolate aspect-[268/204]"
             style={{ gridArea: area.name }}
           >
             {cellFlash ? (

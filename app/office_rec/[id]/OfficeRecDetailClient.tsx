@@ -10,18 +10,10 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { OfficeRecDetailItem } from "@/app/lib/cmsTypes";
-import { getSandstormVideoSurfaceStyle } from "@/app/lib/workDetailSandstorm";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { Header } from "../../components/Header";
 import { SoundToggle } from "../../components/SoundToggle";
-import {
-  MASK_SRC_SMALL,
-  TW_IMAGE_CLIP_LAYER,
-  TW_IMAGE_FILL_UNDER_MASK,
-  TW_MASK_LAYER_WORK_DETAIL,
-  TW_SHELL_DETAIL_THUMB_WORK,
-} from "@/app/lib/workThumbnailLayout";
 
 const STORAGE_ENTER = "officeRecDetailEnterTransition";
 /** transitionTo でセット。遷移先 id と一致するときだけ内部入場として砂嵐入場を許可 */
@@ -261,22 +253,21 @@ export function OfficeRecDetailClient({ data }: Props) {
 
   const thumbnailContent = data?.thumbnailUrl ? (
     <>
-      <div className={TW_IMAGE_CLIP_LAYER}>
+      <div className="absolute inset-0 overflow-hidden">
         <Image
           src={data.thumbnailUrl}
           alt=""
           fill
           priority
           sizes="(min-width: 768px) 60vw, 95vw"
-          className={TW_IMAGE_FILL_UNDER_MASK}
+          className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
           unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
         />
         {showSandstorm && (
           <video
             ref={sandstormVideoRef}
             src={SANDSTORM_SRC}
-            className={`work-detail-sandstorm-video ${TW_IMAGE_FILL_UNDER_MASK} ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
-            style={getSandstormVideoSurfaceStyle()}
+            className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
             loop={sandstormExit}
             muted
             playsInline
@@ -286,10 +277,10 @@ export function OfficeRecDetailClient({ data }: Props) {
         )}
       </div>
       <img
-        src={MASK_SRC_SMALL}
+        src="/works-mask.svg"
         alt=""
         aria-hidden="true"
-        className={TW_MASK_LAYER_WORK_DETAIL}
+        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
       />
     </>
   ) : (
@@ -346,7 +337,7 @@ export function OfficeRecDetailClient({ data }: Props) {
         >
           <div
             ref={thumbnailGestureRef}
-            className={`${TW_SHELL_DETAIL_THUMB_WORK} ${imgAnim}`}
+            className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 ${imgAnim}`}
           >
             {thumbnailContent}
           </div>

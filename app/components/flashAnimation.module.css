@@ -1,7 +1,7 @@
 /* AstroidFlash / AstroidRevealCell — レイアウト・マスク SVG・CRT 白レイヤ */
 
 /* ── セルラッパー（aspect-ratio 親は relative）。overflow は hidden にしない
-   （works-mask の filter 外周が切れないように。写真は TW_IMAGE_CLIP_LAYER でクリップ） */
+   （works-mask の filter 外周が切れないように。写真は内側の `overflow-hidden` でクリップ） */
 .root {
   position: absolute;
   inset: 0;
