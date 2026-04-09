@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { WorkCreditLine, WorkDetailItem } from "@/app/lib/cmsTypes";
+import { fetchWorkItemByIdClient } from "@/sanity/lib/fetchWorkItemClient";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "../../components/AstroidFlash";
 import { Header } from "../../components/Header";
@@ -23,12 +24,7 @@ const STORAGE_ENTER_TARGET_ID = "workDetailEnterTargetId";
 const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
-/** シーケンシャル入場時、砂嵐オーバーレイを表示しておく時間（テキストは opacity-0 のまま） */
 const SANDSTORM_ENTER_HOLD_MS = 400;
-
-function isWorkToWorkHref(href: string) {
-  return /^\/works\/[^/]+$/.test(href);
-}
 
 function getYouTubeVideoId(url: string): string | null {
   const trimmed = url.trim();
@@ -93,10 +89,14 @@ const FALLBACK_CREDITS: WorkCreditLine[] = [
 ];
 
 type Props = {
-  data: WorkDetailItem | null;
+  initialData: WorkDetailItem | null;
 };
 
-export function WorkDetailClient({ data }: Props) {
+export function WorkDetailClient({ initialData }: Props) {
+  const [data, setData] = useState(initialData);
+  const dataIdRef = useRef(data?._id);
+  dataIdRef.current = data?._id;
+
   const creditLines =
     data?.credits && data.credits.length > 0 ? data.credits : FALLBACK_CREDITS;
 
@@ -116,9 +116,14 @@ export function WorkDetailClient({ data }: Props) {
   const showYouTubePlayer = Boolean(youtubeEmbedId);
 
   useEffect(() => {
+    setData(initialData);
+  }, [initialData?._id]);
+
+  useEffect(() => {
     exitingRef.current = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExiting(false);
+    setSandstormExit(false);
   }, [data?._id]);
 
   useLayoutEffect(() => {
@@ -174,29 +179,69 @@ export function WorkDetailClient({ data }: Props) {
     });
   }, [data?._id]);
 
-  const transitionTo = useCallback(
-    (href: string) => {
+  /** Prev/Next は RSC を取りに行かない（Sanity をクライアント取得 + history のみ） */
+  const goSequential = useCallback(
+    async (nextId: string) => {
       if (exitingRef.current) return;
+      if (!nextId || nextId === data?._id) return;
 
       exitingRef.current = true;
-      sessionStorage.setItem(STORAGE_ENTER, "1");
-      const nextId = href.match(/\/works\/([^/?#]+)/)?.[1];
-      if (nextId) {
+      try {
+        sessionStorage.setItem(STORAGE_ENTER, "1");
         sessionStorage.setItem(STORAGE_ENTER_TARGET_ID, nextId);
+      } catch {
+        /* ignore */
       }
-      if (
-        (data?.thumbnailUrl || showYouTubePlayer) &&
-        isWorkToWorkHref(href) &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
+
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const yt = data?.category === "music-video" && data?.videoUrl
+        ? getYouTubeVideoId(data.videoUrl)
+        : null;
+      if ((data?.thumbnailUrl || yt) && !reduceMotion) {
         setSandstormExit(true);
       }
       setExiting(true);
 
-      router.push(href);
+      const next = await fetchWorkItemByIdClient(nextId);
+      if (!next) {
+        setSandstormExit(false);
+        setExiting(false);
+        exitingRef.current = false;
+        router.push(`/works/${nextId}`);
+        return;
+      }
+
+      window.history.pushState({ workId: nextId }, "", `/works/${nextId}`);
+      setData(next);
     },
-    [router, data?.thumbnailUrl, showYouTubePlayer],
+    [data?._id, data?.thumbnailUrl, data?.category, data?.videoUrl, router],
   );
+
+  const tryNavigateNext = useCallback(() => {
+    const nextId = data?.nextId;
+    if (!nextId || nextId === data?._id) return;
+    void goSequential(nextId);
+  }, [data?._id, data?.nextId, goSequential]);
+
+  const tryNavigatePrev = useCallback(() => {
+    const prevId = data?.prevId;
+    if (!prevId || prevId === data?._id) return;
+    void goSequential(prevId);
+  }, [data?._id, data?.prevId, goSequential]);
+
+  useEffect(() => {
+    const onPop = () => {
+      const m = window.location.pathname.match(/^\/works\/([^/]+)$/);
+      if (!m) return;
+      const wid = m[1];
+      if (wid === dataIdRef.current) return;
+      void fetchWorkItemByIdClient(wid).then((d) => {
+        if (d) setData(d);
+      });
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   useEffect(() => {
     if (!sandstormExit && !sandstormEnter) return;
@@ -219,18 +264,6 @@ export function WorkDetailClient({ data }: Props) {
     }, SANDSTORM_ENTER_HOLD_MS);
     return () => window.clearTimeout(t);
   }, [sandstormEnter]);
-
-  const tryNavigateNext = useCallback(() => {
-    const nextId = data?.nextId;
-    if (!nextId || nextId === data?._id) return;
-    transitionTo(`/works/${nextId}`);
-  }, [data?._id, data?.nextId, transitionTo]);
-
-  const tryNavigatePrev = useCallback(() => {
-    const prevId = data?.prevId;
-    if (!prevId || prevId === data?._id) return;
-    transitionTo(`/works/${prevId}`);
-  }, [data?._id, data?.prevId, transitionTo]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
