@@ -21,5 +21,5 @@ export default async function WorkDetailPage({
     { id },
   );
 
-  return <WorkDetailClient key={id} initialData={data} />;
+  return <WorkDetailClient key={id} data={data} />;
 }
