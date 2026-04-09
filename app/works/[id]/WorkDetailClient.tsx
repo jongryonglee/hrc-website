@@ -20,13 +20,11 @@ import { SoundToggle } from "../../components/SoundToggle";
 
 const STORAGE_ENTER = "workDetailEnterTransition";
 const STORAGE_ENTER_TARGET_ID = "workDetailEnterTargetId";
-const STORAGE_LOCK = "workDetailNavLockUntil";
 const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
-const SANDSTORM_ENTER_HOLD_MS = 800;
-const NAV_COOLDOWN_MS = 1400;
-const EXIT_MS = 420;
+/** シーケンシャル入場時、砂嵐オーバーレイを表示しておく時間（テキストは opacity-0 のまま） */
+const SANDSTORM_ENTER_HOLD_MS = 400;
 
 function isWorkToWorkHref(href: string) {
   return /^\/works\/[^/]+$/.test(href);
@@ -109,8 +107,6 @@ export function WorkDetailClient({ data }: Props) {
   const [sandstormEnter, setSandstormEnter] = useState(false);
   const [useCrtEnter, setUseCrtEnter] = useState(false);
   const exitingRef = useRef(false);
-  const lockUntilRef = useRef(0);
-  const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const youtubeEmbedId =
@@ -126,17 +122,7 @@ export function WorkDetailClient({ data }: Props) {
   }, [data?._id]);
 
   useLayoutEffect(() => {
-    /* sessionStorage / matchMedia を初回ペイント前に反映（Strict Mode 対応含む） */
     /* eslint-disable react-hooks/set-state-in-effect */
-    const lockStr = sessionStorage.getItem(STORAGE_LOCK);
-    if (lockStr) {
-      const until = parseInt(lockStr, 10);
-      if (!Number.isNaN(until) && Date.now() < until) {
-        lockUntilRef.current = until;
-      }
-      sessionStorage.removeItem(STORAGE_LOCK);
-    }
-
     if (!data?._id) {
       return;
     }
@@ -147,13 +133,16 @@ export function WorkDetailClient({ data }: Props) {
     const isSequentialEnter = enter === "1" && targetId === data._id;
 
     if (isSequentialEnter) {
-      /* STORAGE_ENTER / TARGET_ID は砂嵐終了まで残す（Strict Mode の再マウントでも同じ入場として扱う） */
-      sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
       setEnterActive(true);
       setUseCrtEnter(false);
       const allowSandstorm =
         (Boolean(data?.thumbnailUrl) || showYouTubePlayer) && !reduceMotion;
       setSandstormEnter(allowSandstorm);
+      try {
+        sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
+      } catch {
+        /* ignore */
+      }
       if (!allowSandstorm) {
         try {
           sessionStorage.removeItem(STORAGE_ENTER);
@@ -176,30 +165,20 @@ export function WorkDetailClient({ data }: Props) {
     if (!data?._id) return;
     const stored = sessionStorage.getItem(STORAGE_CRT_FROM_WORKS_LIST);
     if (stored !== data._id) return;
-    const id = window.setTimeout(() => {
+    queueMicrotask(() => {
       try {
         sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
       } catch {
         /* ignore */
       }
-    }, 0);
-    return () => window.clearTimeout(id);
+    });
   }, [data?._id]);
 
   const transitionTo = useCallback(
     (href: string) => {
       if (exitingRef.current) return;
-      if (Date.now() < lockUntilRef.current) return;
-
-      if (transitionPushTimerRef.current) {
-        clearTimeout(transitionPushTimerRef.current);
-        transitionPushTimerRef.current = null;
-      }
 
       exitingRef.current = true;
-      const until = Date.now() + NAV_COOLDOWN_MS;
-      lockUntilRef.current = until;
-      sessionStorage.setItem(STORAGE_LOCK, String(until));
       sessionStorage.setItem(STORAGE_ENTER, "1");
       const nextId = href.match(/\/works\/([^/?#]+)/)?.[1];
       if (nextId) {
@@ -214,23 +193,10 @@ export function WorkDetailClient({ data }: Props) {
       }
       setExiting(true);
 
-      transitionPushTimerRef.current = window.setTimeout(() => {
-        transitionPushTimerRef.current = null;
-        router.push(href);
-      }, EXIT_MS);
+      router.push(href);
     },
     [router, data?.thumbnailUrl, showYouTubePlayer],
   );
-
-  useEffect(() => {
-    return () => {
-      if (transitionPushTimerRef.current) {
-        clearTimeout(transitionPushTimerRef.current);
-        transitionPushTimerRef.current = null;
-        exitingRef.current = false;
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (!sandstormExit && !sandstormEnter) return;
@@ -242,7 +208,7 @@ export function WorkDetailClient({ data }: Props) {
 
   useEffect(() => {
     if (!sandstormEnter) return;
-    const remove = window.setTimeout(() => {
+    const t = window.setTimeout(() => {
       setSandstormEnter(false);
       try {
         sessionStorage.removeItem(STORAGE_ENTER);
@@ -251,12 +217,8 @@ export function WorkDetailClient({ data }: Props) {
         /* ignore */
       }
     }, SANDSTORM_ENTER_HOLD_MS);
-    return () => {
-      clearTimeout(remove);
-    };
+    return () => window.clearTimeout(t);
   }, [sandstormEnter]);
-
-  const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
 
   const tryNavigateNext = useCallback(() => {
     const nextId = data?.nextId;
@@ -366,6 +328,8 @@ export function WorkDetailClient({ data }: Props) {
       : enterActive
         ? "work-detail-enter-credits"
         : "";
+
+  const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
