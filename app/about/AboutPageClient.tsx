@@ -36,7 +36,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
             <div className="flex flex-col gap-y-[30px] md:gap-y-[34px] md:flex-row md:items-start md:gap-x-[17px]">
               <div className="flex-1 md:h-[159px] md:w-[284px] md:flex-none">
                 <Image
-                  src="/images/about-hero.png"
+                  src="/images/about-hero.webp"
                   alt=""
                   width={284}
                   height={159}

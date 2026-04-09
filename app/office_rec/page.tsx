@@ -11,7 +11,7 @@ export default async function OfficeRecPage() {
     [],
   );
 
-  const fallbackThumb = "/images/office-rec-1.png";
+  const fallbackThumb = "/images/office-rec-1.webp";
 
   const items: GridItem[] = sourceItems.map((item) => ({
     _key: item._id,
@@ -26,7 +26,7 @@ export default async function OfficeRecPage() {
       : [
           {
             _key: "office-rec-placeholder",
-            image: "/images/office-rec-1.png",
+            image: "/images/office-rec-1.webp",
             title: "Vol.1 - Reunited / takeisme",
           },
         ];

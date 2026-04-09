@@ -54,7 +54,12 @@ export type AstroidFlashCellRefs = {
 type CellEntry = AstroidFlashCellRefs & {
   /** このセルだけアニメ開始を遅らせる（ms） */
   staggerMs: number;
+  /** `localT >= TOTAL_CELL_MS` の最終状態を一度適用済みなら以降の tick をスキップ */
+  flashSettled?: boolean;
 };
+
+/** TopGrid と同じ 767px 以下で RAF を間引き、モバイル負荷を抑える */
+const NARROW_VIEWPORT_QUERY = "(max-width: 767px)";
 
 type RegisterCell = (refs: AstroidFlashCellRefs) => () => void;
 
@@ -183,11 +188,23 @@ export function AstroidFlashProvider({
 }: AstroidFlashProviderProps) {
   const cellsRef = useRef(new Set<CellEntry>());
   const rafRef = useRef<number | null>(null);
+  const narrowViewportRef = useRef(false);
+  const rafThrottleFrameCountRef = useRef(0);
   const [replayToken, setReplayToken] = useState(0);
+
+  useLayoutEffect(() => {
+    const mq = window.matchMedia(NARROW_VIEWPORT_QUERY);
+    const update = () => {
+      narrowViewportRef.current = mq.matches;
+    };
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   const register = useCallback((refs: AstroidFlashCellRefs) => {
     const staggerMs = Math.floor(Math.random() * STAGGER_MAX_MS);
-    const entry: CellEntry = { ...refs, staggerMs };
+    const entry: CellEntry = { ...refs, staggerMs, flashSettled: false };
     cellsRef.current.add(entry);
     return () => {
       cellsRef.current.delete(entry);
@@ -209,6 +226,10 @@ export function AstroidFlashProvider({
     stopAnimation();
 
     const startMs = performance.now();
+    rafThrottleFrameCountRef.current = 0;
+    for (const c of cellsRef.current) {
+      c.flashSettled = false;
+    }
 
     const tick = (now: number) => {
       const globalElapsed = now - startMs;
@@ -219,8 +240,24 @@ export function AstroidFlashProvider({
       }
       const runUntil = maxStagger + TOTAL_CELL_MS;
 
+      if (narrowViewportRef.current && globalElapsed < runUntil) {
+        rafThrottleFrameCountRef.current += 1;
+        /* 2 フレームに 1 回だけ描画（先頭フレームは必ず実行） */
+        if (rafThrottleFrameCountRef.current % 2 === 0) {
+          rafRef.current = requestAnimationFrame(tick);
+          return;
+        }
+      }
+
       for (const c of cellsRef.current) {
-        applyCellForLocalT(c, globalElapsed - c.staggerMs);
+        if (c.flashSettled) continue;
+        const localT = globalElapsed - c.staggerMs;
+        if (localT >= TOTAL_CELL_MS) {
+          applyCellForLocalT(c, TOTAL_CELL_MS + 1);
+          c.flashSettled = true;
+        } else {
+          applyCellForLocalT(c, localT);
+        }
       }
 
       if (globalElapsed < runUntil) {
@@ -229,6 +266,7 @@ export function AstroidFlashProvider({
         rafRef.current = null;
         for (const c of cellsRef.current) {
           applyCellForLocalT(c, TOTAL_CELL_MS + 1);
+          c.flashSettled = true;
         }
       }
     };

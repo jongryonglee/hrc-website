@@ -41,7 +41,7 @@ export default async function GraphicDesignPage() {
       ? items
       : [
           {
-            image: "/images/graphic-302.png",
+            image: "/images/graphic-302.webp",
             title: "mono-hi vol.12",
             alt: "mono-hi vol.12",
           },
