@@ -15,11 +15,19 @@ export type WorkListItem = {
   artist: string;
   producer?: string | null;
   category: "music-video" | "sound-effect";
-  videoUrl: string;
+  /** Music Video では必須想定。Sound Effect では未設定の場合あり */
+  videoUrl?: string | null;
   thumbnailUrl?: string | null;
   label: string;
   role: string;
   date: string;
+};
+
+/** workItem.credits の1行（Sanity の workCreditLine） */
+export type WorkCreditLine = {
+  _key?: string;
+  label: string;
+  name: string;
 };
 
 /** WORK_ITEM_QUERY */
@@ -29,7 +37,12 @@ export type WorkDetailItem = {
   artist: string;
   producer?: string | null;
   category: "music-video" | "sound-effect";
-  videoUrl: string;
+  /** Music Video では必須想定。Sound Effect では未設定の場合あり */
+  videoUrl?: string | null;
+  /** Sound Effect 用（Sanity の soundFile） */
+  soundUrl?: string | null;
+  /** 作品ごとに可変件数のクレジット行 */
+  credits?: WorkCreditLine[] | null;
   thumbnailUrl?: string | null;
   nextId?: string | null;
   prevId?: string | null;

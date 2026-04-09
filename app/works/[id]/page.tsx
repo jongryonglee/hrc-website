@@ -4,44 +4,6 @@ import { WORK_ITEM_QUERY } from "@/sanity/lib/queries";
 import { notFound } from "next/navigation";
 import { WorkDetailClient } from "./WorkDetailClient";
 
-const credits = [
-  "Prod.",
-  "Directer",
-  "Camera",
-  "Camera assistant",
-  "Color",
-  "Flower Design",
-  "Still Photography",
-  "Act",
-  "Styling",
-  "Make-up artist",
-  "Assistant",
-  "Special Thanks",
-  "Lyric",
-  "Beat",
-  "Mix",
-  "Mastering",
-];
-
-const creditNames = [
-  "theeluu",
-  "Hikaru Jamie Masamiya",
-  "Shintaro Teramoto",
-  "Kosei Yamazaki",
-  "Hikaru Jamie Masamiya",
-  "ai",
-  "Fumiya Kawasaki",
-  "Fumiya Kawasaki, Gino",
-  "Daichi Inamura (Intro)",
-  "Rei",
-  "Ikuya Sada",
-  "KAKKY",
-  "takeisme",
-  "theeluu",
-  "theeluu",
-  "theeluu",
-];
-
 export default async function WorkDetailPage({
   params,
 }: {
@@ -59,12 +21,5 @@ export default async function WorkDetailPage({
     { id },
   );
 
-  return (
-    <WorkDetailClient
-      key={id}
-      data={data}
-      credits={credits}
-      creditNames={creditNames}
-    />
-  );
+  return <WorkDetailClient key={id} data={data} />;
 }

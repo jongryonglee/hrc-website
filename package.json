@@ -15,7 +15,8 @@
     "next-sanity": "^12.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "sanity": "^5.13.0"
+    "sanity": "^5.13.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

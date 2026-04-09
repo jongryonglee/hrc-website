@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -20,7 +21,7 @@ const STORAGE_ENTER = "officeRecDetailEnterTransition";
 const STORAGE_ENTER_TARGET_ID = "officeRecDetailEnterTargetId";
 const STORAGE_LOCK = "officeRecDetailNavLockUntil";
 
-const SANDSTORM_SRC = "/sandstorm.mp4";
+const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
 const SANDSTORM_ENTER_HOLD_MS = 380;
 const SANDSTORM_ENTER_FADE_MS = 480;
 
@@ -40,6 +41,9 @@ type Props = {
 export function OfficeRecDetailClient({ data }: Props) {
   const router = useRouter();
   const prefersReducedMotion = usePrefersReducedMotion();
+  const sandstormFadeStyle = {
+    ["--work-sandstorm-fade-ms" as string]: `${prefersReducedMotion ? 200 : SANDSTORM_ENTER_FADE_MS}ms`,
+  } as CSSProperties;
   const [exiting, setExiting] = useState(false);
   const [enterActive, setEnterActive] = useState(false);
   const [sandstormExit, setSandstormExit] = useState(false);
@@ -247,9 +251,7 @@ export function OfficeRecDetailClient({ data }: Props) {
   }, [sequentialNav]);
 
   const showSandstorm =
-    Boolean(data?.thumbnailUrl) &&
-    (sandstormExit || sandstormEnter) &&
-    !prefersReducedMotion;
+    Boolean(data?.thumbnailUrl) && (sandstormExit || sandstormEnter);
 
   const thumbnailContent = data?.thumbnailUrl ? (
     <>
@@ -267,8 +269,9 @@ export function OfficeRecDetailClient({ data }: Props) {
           <video
             ref={sandstormVideoRef}
             src={SANDSTORM_SRC}
+            style={sandstormFadeStyle}
             className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
-            loop={sandstormExit}
+            loop={sandstormExit || sandstormEnter}
             muted
             playsInline
             preload="auto"

@@ -2,6 +2,7 @@
 
 import {
   Fragment,
+  type CSSProperties,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -10,27 +11,23 @@ import {
 } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import type { WorkDetailItem } from "@/app/lib/cmsTypes";
+import type { WorkCreditLine, WorkDetailItem } from "@/app/lib/cmsTypes";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { AstroidFlashProvider, AstroidRevealCell } from "../../components/AstroidFlash";
 import { Header } from "../../components/Header";
+import { LiteYouTubeEmbed } from "../../components/LiteYouTubeEmbed";
 import { ScrambleText } from "../../components/ScrambleText";
 import { SoundToggle } from "../../components/SoundToggle";
 
 const STORAGE_ENTER = "workDetailEnterTransition";
-/** transitionTo でセット。遷移先 id と一致するときだけ「内部入場」として CRT を抑止（先に effect が走ってフラグだけ消す事故を防ぐ） */
 const STORAGE_ENTER_TARGET_ID = "workDetailEnterTargetId";
 const STORAGE_LOCK = "workDetailNavLockUntil";
-/** `/works` 一覧から行クリックで「遷移先の作品 id」をセット。CRT は値が現在の data._id と一致するときのみ */
 const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 
-const SANDSTORM_SRC = "/sandstorm.mp4";
-/** 入場時：砂嵐を見せてからフェードアウト開始まで */
-const SANDSTORM_ENTER_HOLD_MS = 380;
+const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
+const SANDSTORM_ENTER_HOLD_MS = 800;
 const SANDSTORM_ENTER_FADE_MS = 480;
-
-/** 連続遷移防止：この時間は前後ボタン遷移を受け付けない */
 const NAV_COOLDOWN_MS = 1400;
 const EXIT_MS = 420;
 
@@ -38,7 +35,6 @@ function isWorkToWorkHref(href: string) {
   return /^\/works\/[^/]+$/.test(href);
 }
 
-/** 各種 YouTube URL から動画 ID を取り出す（埋め込み用）。 */
 function getYouTubeVideoId(url: string): string | null {
   const trimmed = url.trim();
   if (!trimmed) return null;
@@ -64,7 +60,7 @@ function getYouTubeVideoId(url: string): string | null {
       if (v) return v;
     }
   } catch {
-    /* 相対 URL 等は下のフォールバック */
+    /* ignore */
   }
 
   const short = trimmed.match(/youtu\.be\/([^/?&#]+)/i);
@@ -82,29 +78,47 @@ function getYouTubeVideoId(url: string): string | null {
   return null;
 }
 
+const FALLBACK_CREDITS: WorkCreditLine[] = [
+  { label: "Prod.", name: "theeluu" },
+  { label: "Directer", name: "Hikaru Jamie Masamiya" },
+  { label: "Camera", name: "Shintaro Teramoto" },
+  { label: "Camera assistant", name: "Kosei Yamazaki" },
+  { label: "Color", name: "Hikaru Jamie Masamiya" },
+  { label: "Flower Design", name: "ai" },
+  { label: "Still Photography", name: "Fumiya Kawasaki" },
+  { label: "Act", name: "Fumiya Kawasaki, Gino" },
+  { label: "Styling", name: "Daichi Inamura (Intro)" },
+  { label: "Make-up artist", name: "Rei" },
+  { label: "Assistant", name: "Ikuya Sada" },
+  { label: "Special Thanks", name: "KAKKY" },
+  { label: "Lyric", name: "takeisme" },
+  { label: "Beat", name: "theeluu" },
+  { label: "Mix", name: "theeluu" },
+  { label: "Mastering", name: "theeluu" },
+];
+
 type Props = {
   data: WorkDetailItem | null;
-  credits: string[];
-  creditNames: string[];
 };
 
-export function WorkDetailClient({ data, credits, creditNames }: Props) {
+export function WorkDetailClient({ data }: Props) {
+  const creditLines =
+    data?.credits && data.credits.length > 0 ? data.credits : FALLBACK_CREDITS;
+
   const router = useRouter();
   const prefersReducedMotion = usePrefersReducedMotion();
+  const sandstormFadeStyle = {
+    ["--work-sandstorm-fade-ms" as string]: `${prefersReducedMotion ? 200 : SANDSTORM_ENTER_FADE_MS}ms`,
+  } as CSSProperties;
   const [exiting, setExiting] = useState(false);
   const [enterActive, setEnterActive] = useState(false);
-  /** 作品→作品の exit 中、マスク内で砂嵐を重ねる */
   const [sandstormExit, setSandstormExit] = useState(false);
-  /** 作品→作品の入場直後、マスク内で砂嵐を重ねてからフェードアウト */
   const [sandstormEnter, setSandstormEnter] = useState(false);
   const [sandstormEnterFading, setSandstormEnterFading] = useState(false);
-  /** CRT: `/works` 一覧からの遷移時のみ。直 URL・ホーム等・作品間 next は false */
   const [useCrtEnter, setUseCrtEnter] = useState(false);
-  /** sessionStorage 判定までサムネを隠し、CRT と内部入場のどちらかに揃える */
   const [bootReady, setBootReady] = useState(false);
   const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
-  /** transitionTo の router.push を遅延させるタイマー。アンマウント後に発火すると別ページへ誤遷移するので必ず解除 */
   const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -114,10 +128,9 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
       : null;
   const showYouTubePlayer = Boolean(youtubeEmbedId);
 
-  /** クライアント遷移で同一インスタンスが再利用されると transitionTo の exiting が残るためリセット */
   useEffect(() => {
     exitingRef.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 作品 id 変更時に exiting をリセット（同一クライアントインスタンス再利用対策）
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExiting(false);
   }, [data?._id]);
 
@@ -132,7 +145,7 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     }
 
     if (!data?._id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- CMS 未取得時はサムネ待ちをスキップ
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBootReady(true);
       return;
     }
@@ -145,7 +158,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
       sessionStorage.removeItem(STORAGE_ENTER);
       sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
       sessionStorage.removeItem(STORAGE_CRT_FROM_WORKS_LIST);
-      // next / prev / transitionTo からの遷移: CRT は再生しない（CSS 入場のみ）
       setEnterActive(true);
       setUseCrtEnter(false);
       const allowSandstorm =
@@ -166,7 +178,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     setBootReady(true);
   }, [data?._id, data?.thumbnailUrl, data?.category, data?.videoUrl, showYouTubePlayer]);
 
-  /** layout では sessionStorage を消さない（Strict Mode の二重マウントでフラグが先に消えて CRT が死ぬ）。次フレームで消す */
   useEffect(() => {
     if (!data?._id) return;
     const stored = sessionStorage.getItem(STORAGE_CRT_FROM_WORKS_LIST);
@@ -227,7 +238,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     };
   }, []);
 
-  /** 砂嵐ビデオの再生（exit / 入場どちらも currentTime 0 から） */
   useEffect(() => {
     if (!sandstormExit && !sandstormEnter) return;
     const v = sandstormVideoRef.current;
@@ -236,7 +246,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     void v.play().catch(() => {});
   }, [sandstormExit, sandstormEnter]);
 
-  /** 入場：しばらく見せてからフェードアウトしレイヤー解除 */
   useEffect(() => {
     if (!sandstormEnter) {
       setSandstormEnterFading(false);
@@ -255,7 +264,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     };
   }, [sandstormEnter]);
 
-  /** 複数件あるときだけ前後へ遷移（1件のみのときは nextId / prevId が自分自身になる） */
   const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
 
   const tryNavigateNext = useCallback(() => {
@@ -270,9 +278,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     transitionTo(`/works/${prevId}`);
   }, [data?._id, data?.prevId, transitionTo]);
 
-  /**
-   * 入力・IME 以外で Backspace → 履歴バック（Chrome 向け補助）。
-   */
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Backspace" || e.isComposing) return;
@@ -289,25 +294,23 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
 
   const showSandstorm =
     (Boolean(data?.thumbnailUrl) || showYouTubePlayer) &&
-    (sandstormExit || sandstormEnter) &&
-    !prefersReducedMotion;
+    (sandstormExit || sandstormEnter);
 
   const thumbnailContent = youtubeEmbedId ? (
     <>
       <div className="absolute inset-0 overflow-hidden">
-        <iframe
-          title={data?.title ? `${data.title} — YouTube` : "YouTube video"}
+        <LiteYouTubeEmbed
+          videoId={youtubeEmbedId}
+          title={data?.title ?? undefined}
           className="absolute inset-0 z-0 h-full w-full scale-[0.983] border-0"
-          src={`https://www.youtube.com/embed/${youtubeEmbedId}?rel=0&modestbranding=0&controls=1`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
         />
         {showSandstorm && (
           <video
             ref={sandstormVideoRef}
             src={SANDSTORM_SRC}
+            style={sandstormFadeStyle}
             className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
-            loop={sandstormExit}
+            loop={sandstormExit || sandstormEnter}
             muted
             playsInline
             preload="auto"
@@ -338,8 +341,9 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
           <video
             ref={sandstormVideoRef}
             src={SANDSTORM_SRC}
+            style={sandstormFadeStyle}
             className={`work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center] ${sandstormEnterFading ? "work-detail-sandstorm-enter-fade" : ""}`}
-            loop={sandstormExit}
+            loop={sandstormExit || sandstormEnter}
             muted
             playsInline
             preload="auto"
@@ -358,7 +362,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
     <div className="absolute inset-0 rounded-[16px] bg-white/10" />
   );
 
-  /** 作品間：画像のフェード出し入れはせず、マスク内の砂嵐で挟む（テキスト等は従来の exit/enter） */
   const imgAnim =
     exiting && sandstormExit
       ? ""
@@ -391,7 +394,6 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
         </div>
 
         <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none">
-          {/* md: グリッド全体に pointer-events-auto があると全画面がヒット領域になり中央の動画を覆う */}
           <div className="layout-grid md:items-start pointer-events-auto md:pointer-events-none">
             <div
               className={`col-span-9 md:col-span-8 md:[grid-row-start:7] md:[grid-row-end:9] md:pointer-events-auto ${textAnim}`}
@@ -430,15 +432,25 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
         <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:mb-[17px]">
           <div className="layout-grid pointer-events-auto md:pointer-events-none">
             <div className="col-span-3 md:col-span-2 flex flex-col gap-1 md:pointer-events-auto justify-end">
-              <a
-                href={data?.videoUrl || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="link_co flex items-center gap-2 whitespace-nowrap"
-              >
-                <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
-                <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
-              </a>
+              {data?.videoUrl ? (
+                <a
+                  href={data.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link_co flex items-center gap-2 whitespace-nowrap"
+                >
+                  <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
+                  <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+                </a>
+              ) : (
+                <span
+                  className="link_co flex items-center gap-2 whitespace-nowrap"
+                  aria-disabled="true"
+                >
+                  <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
+                  <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+                </span>
+              )}
               <span
                 className="link_co flex items-center gap-2 whitespace-nowrap"
                 aria-disabled="true"
@@ -489,7 +501,11 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
                   </button>
                 </div>
               )}
-              <SoundToggle />
+              <SoundToggle
+                audioSrc={
+                  data?.category === "sound-effect" ? data.soundUrl ?? null : null
+                }
+              />
             </div>
           </div>
         </div>
@@ -499,10 +515,10 @@ export function WorkDetailClient({ data, credits, creditNames }: Props) {
             <div
               className={`col-start-3 col-span-7 md:col-span-5 md:col-start-14 md:[grid-row-start:8] grid [grid-template-columns:subgrid] gap-y-0 content-start md:pointer-events-auto ${creditsAnim}`}
             >
-              {credits.map((label, i) => (
-                <Fragment key={label}>
-                  <p className="col-span-3 md:col-span-2">{label}</p>
-                  <p className="col-span-4 md:col-span-3">{creditNames[i]}</p>
+              {creditLines.map((line, i) => (
+                <Fragment key={line._key ?? `${line.label}-${i}`}>
+                  <p className="col-span-3 md:col-span-2">{line.label}</p>
+                  <p className="col-span-4 md:col-span-3">{line.name}</p>
                 </Fragment>
               ))}
             </div>

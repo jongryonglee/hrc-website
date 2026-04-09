@@ -67,8 +67,49 @@ export const workItem = defineType({
       name: "videoUrl",
       title: "Video URL",
       type: "url",
+      description:
+        "Music Video のときは必須。Sound Effect のときは任意（YouTube など）。",
       validation: (rule) =>
-        rule.required().uri({ scheme: ["http", "https"] }),
+        rule.custom((value, context) => {
+          const category = (context.document as { category?: string } | undefined)
+            ?.category;
+          const empty = value == null || value === "";
+          if (category === "sound-effect") {
+            if (empty) return true;
+          } else if (empty) {
+            return "Music Video では動画 URL を入力してください";
+          }
+          if (typeof value === "string" && value) {
+            try {
+              const u = new URL(value);
+              if (u.protocol !== "http:" && u.protocol !== "https:") {
+                return "http または https の URL を入力してください";
+              }
+            } catch {
+              return "有効な URL を入力してください";
+            }
+          }
+          return true;
+        }),
+    }),
+    defineField({
+      name: "credits",
+      title: "Credits",
+      type: "array",
+      description:
+        "クレジット行を任意件数で追加。左がラベル（役職など）、右が名前。",
+      of: [{ type: "workCreditLine" }],
+    }),
+    defineField({
+      name: "soundFile",
+      title: "Sound file",
+      type: "file",
+      description:
+        "Sound Effect 用の音源（MP3 / WAV / OGG など）。作品詳細の Sound ON で再生されます。",
+      options: {
+        accept: "audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac",
+      },
+      hidden: ({ document }) => document?.category !== "sound-effect",
     }),
   ],
 });

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent } from "react";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
 
 export type GridItem = {
   _key: string;
@@ -60,7 +61,7 @@ export const ContentGrid = ({
                     className={imageClassName}
                     sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
                     priority={i < 4}
-                    unoptimized={true}
+                    unoptimized={nextImageUnoptimized(item.image)}
                   />
                 </div>
                 {/* 黒い縁のマスクを上に重ねる（コンテナより少し大きくして画像のはみ出しを隠す） */}

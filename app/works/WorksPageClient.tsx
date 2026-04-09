@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { WorkListItem } from "@/app/lib/cmsTypes";
 import { useCanHover } from "@/app/hooks/useCanHover";
+import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { ScrambleText } from "../components/ScrambleText";
@@ -174,10 +176,13 @@ export function WorksPageClient({ initialItems }: Props) {
             >
               <div className="flex justify-center">
                 <div className="relative aspect-[268/204] w-[600px] -translate-y-[51px]">
-                  <img
+                  <Image
                     src={hovered.thumbnailUrl}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+                    fill
+                    sizes="600px"
+                    className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+                    unoptimized={nextImageUnoptimized(hovered.thumbnailUrl)}
                   />
                   <img
                     src="/works-mask.svg"

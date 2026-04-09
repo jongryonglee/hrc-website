@@ -268,7 +268,7 @@ h1 {
 
 .work-detail-sandstorm-enter-fade {
   opacity: 0;
-  transition: opacity 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity var(--work-sandstorm-fade-ms, 480ms) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -282,8 +282,6 @@ h1 {
     filter: none !important;
   }
 
-  .work-detail-sandstorm-enter-fade {
-    transition: none !important;
-    opacity: 0 !important;
-  }
+  /* 砂嵐フェードは `--work-sandstorm-fade-ms` を尊重（定数調整が効くように transition は殺さない） */
 }
+
