@@ -152,7 +152,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
               onMouseEnter={() => setHoveredId(work._id)}
               onMouseLeave={() => setHoveredId(null)}
             >
-              <div className="col-span-6 md:col-span-4 [grid-row:span_1]">
+              <div className="col-span-6 md:col-span-4 [grid-row:span_1] text-left">
                 <ScrambleText
                   text={work.title}
                   mode="lap"
@@ -161,17 +161,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                   active={hoveredId === work._id}
                 />
               </div>
-              <div className="col-span-3 md:col-span-2 [grid-row:span_1] text-right">
-                <ScrambleText
-                  text={work.label}
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                  active={hoveredId === work._id}
-                />
-              </div>
-              <div className="hidden md:block md:col-span-3 md:[grid-row:span_1]" />
-              <div className="col-span-3 md:col-span-2 [grid-row:span_1]">
+              <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-right">
                 <ScrambleText
                   text={work.artist}
                   mode="lap"
@@ -180,7 +170,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                   active={hoveredId === work._id}
                 />
               </div>
-              <div className="col-span-3 md:col-span-2 [grid-row:span_1] md:text-right">
+              <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-left">
                 <ScrambleText
                   text={work.role}
                   mode="lap"
@@ -189,9 +179,18 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                   active={hoveredId === work._id}
                 />
               </div>
-              <div className="col-span-3 md:col-span-5 [grid-row:span_1] text-right relative overflow-visible">
+              <div className="col-span-3 md:col-span-4 [grid-row:span_1] text-right">
                 <ScrambleText
-                  text={work.date}
+                  text={work.album}
+                  mode="lap"
+                  speedMs={40}
+                  durationMs={400}
+                  active={hoveredId === work._id}
+                />
+              </div>
+              <div className="col-span-3 md:col-span-4 [grid-row:span_1] text-right relative overflow-visible">
+                <ScrambleText
+                  text={work.label}
                   mode="lap"
                   speedMs={40}
                   durationMs={400}

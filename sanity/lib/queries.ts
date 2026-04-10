@@ -102,9 +102,9 @@ export const PRODUCED_WORK_ITEMS_QUERY = defineQuery(/* groq */ `
     | order(_createdAt desc) {
       _id,
       title,
-      label,
       artist,
       role,
-      date
+      album,
+      label
     }
 `);

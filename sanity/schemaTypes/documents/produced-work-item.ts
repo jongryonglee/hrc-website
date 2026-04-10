@@ -32,10 +32,9 @@ export const producedWorkItem = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: "date",
-      title: "Date",
+      name: "album",
+      title: "Album",
       type: "string",
-      description: "例: 2025/10/17",
       validation: (rule) => rule.required(),
     }),
   ],
