@@ -22,6 +22,9 @@
 
 # misc
 .DS_Store
+
+# Chrome for Testing / Puppeteer 等がプロジェクト直下に展開する場合（コミットしない）
+/chrome/
 *.pem
 
 # debug

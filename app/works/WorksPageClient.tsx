@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { WorkListItem } from "@/app/lib/cmsTypes";
@@ -25,14 +25,23 @@ export function WorksPageClient({ initialItems }: Props) {
   const [hovered, setHovered] = useState<WorkItem | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const handleRowClick = (id: string) => {
+  const handleRowClick = useCallback((id: string) => {
     try {
       sessionStorage.setItem(STORAGE_CRT_FROM_WORKS_LIST, id);
     } catch {
       /* private mode 等 */
     }
     router.push(`/works/${id}`);
-  };
+  }, [router]);
+
+  /** ホバー prefetch に近づける（モバイルはタップ直前に先読み） */
+  const rowPointerProps = useCallback(
+    (id: string) => ({
+      onPointerDown: () => router.prefetch(`/works/${id}`),
+      onClick: () => handleRowClick(id),
+    }),
+    [router, handleRowClick],
+  );
 
   const counts = initialItems.reduce(
     (acc, item) => {
@@ -79,7 +88,9 @@ export function WorksPageClient({ initialItems }: Props) {
           </div>
 
           <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
-            {initialItems.map((work, index) => (
+            {initialItems.map((work, index) => {
+              const rowProps = rowPointerProps(work._id);
+              return (
               <div
                 key={work._id}
                 className="group/row contents"
@@ -96,7 +107,7 @@ export function WorksPageClient({ initialItems }: Props) {
               >
                 <div
                   className="col-span-6 md:col-span-4 [grid-row:span_1] relative z-10 cursor-pointer"
-                  onClick={() => handleRowClick(work._id)}
+                  {...rowProps}
                 >
                   <ScrambleText
                     text={work.title}
@@ -108,7 +119,7 @@ export function WorksPageClient({ initialItems }: Props) {
                 </div>
                 <div
                   className="col-span-3 md:col-span-2 [grid-row:span_1] text-right relative z-10 cursor-pointer"
-                  onClick={() => handleRowClick(work._id)}
+                  {...rowProps}
                 >
                   <ScrambleText
                     text={work.label}
@@ -118,10 +129,10 @@ export function WorksPageClient({ initialItems }: Props) {
                     active={hovered?._id === work._id}
                   />
                 </div>
-                <div className="hidden md:block md:col-span-3 md:[grid-row:span_1] relative z-10 cursor-pointer" onClick={() => handleRowClick(work._id)} />
+                <div className="hidden md:block md:col-span-3 md:[grid-row:span_1] relative z-10 cursor-pointer" {...rowProps} />
                 <div
                   className="col-span-3 md:col-span-2 [grid-row:span_1] relative z-10 cursor-pointer"
-                  onClick={() => handleRowClick(work._id)}
+                  {...rowProps}
                 >
                   <ScrambleText
                     text={work.artist}
@@ -133,7 +144,7 @@ export function WorksPageClient({ initialItems }: Props) {
                 </div>
                 <div
                   className="col-span-3 md:col-span-2 [grid-row:span_1] md:text-right relative z-10 cursor-pointer"
-                  onClick={() => handleRowClick(work._id)}
+                  {...rowProps}
                 >
                   <ScrambleText
                     text={work.role}
@@ -145,7 +156,7 @@ export function WorksPageClient({ initialItems }: Props) {
                 </div>
                 <div
                   className="col-span-3 md:col-span-5 [grid-row:span_1] text-right relative overflow-visible z-10 cursor-pointer"
-                  onClick={() => handleRowClick(work._id)}
+                  {...rowProps}
                 >
                   <ScrambleText
                     text={work.date}
@@ -162,7 +173,8 @@ export function WorksPageClient({ initialItems }: Props) {
                   />
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           {hovered?.thumbnailUrl && hoverIndex !== null && (

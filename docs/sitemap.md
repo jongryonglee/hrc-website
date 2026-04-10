@@ -15,7 +15,6 @@ Next.js App Router（`app/`）に基づく URL 構造。`next.config` のリラ�
 | `/works` | 固定 | Works 一覧 |
 | `/works/[id]` | 動的 | 各 Work 詳細 |
 | `/studio/[[...tool]]` | キャッチオール | `/studio` および `/studio/...`（Sanity Studio 等） |
-| `/test-crt-flash` | 固定 | 開発・検証用ページの可能性が高い |
 
 ## ナビゲーション
 
@@ -44,7 +43,6 @@ flowchart TB
 
   subgraph other["その他"]
     S["/studio および /studio/..."]
-    T["/test-crt-flash"]
   end
 
   H --> W
@@ -57,11 +55,10 @@ flowchart TB
   O --> OD
 
   H -.-> S
-  H -.-> T
 ```
 
 - **実線**: ナビや一覧からの典型的な導線
-- **点線**: ナビに載っていないルート（Studio は管理用、`test-crt-flash` はテスト用とみなしやすい）
+- **点線**: ナビに載っていないルート（Studio は管理用）
 
 ## ツリー（ASCII）
 
@@ -76,5 +73,4 @@ flowchart TB
 │   └── [id]          … 動的詳細
 ├── studio            … オプショナルセグメント（/studio 単体も可）
 │   └── [...]         … キャッチオール
-└── test-crt-flash
 ```

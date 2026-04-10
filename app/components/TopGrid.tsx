@@ -4,19 +4,9 @@ import { useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { usePrefersReducedMotion } from "@/app/hooks/usePrefersReducedMotion";
 import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
+import { buildThumbnailSlots } from "@/app/lib/topGridSlots";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
-import { AstroidFlashProvider, AstroidRevealCell } from "./AstroidFlash";
-
-const FALLBACK_IMAGES = [
-  "/images/works-1.webp",
-  "/images/works-2.webp",
-  "/images/works-3.webp",
-  "/images/works-4.webp",
-  "/images/works-5.webp",
-  "/images/works-6.webp",
-  "/images/works-7.webp",
-  "/images/works-8.webp",
-];
+import { CrtFlashProvider, CrtRevealCell } from "./CrtFlash";
 
 const SLOT_COUNT = 15;
 /** 巡目1の大3＋巡目2の大3。1ブロックで base[k]〜base[k+5] を大セルに順に割当 */
@@ -164,43 +154,20 @@ function buildSlotsForCycle2(base: SlotEntry[], blockIndex: number): SlotEntry[]
 
 type SlotEntry = { url: string };
 
-function buildThumbnailSlots(cmsItems: TopGridWorkItem[]): SlotEntry[] {
-  const n = FALLBACK_IMAGES.length;
-  const out: SlotEntry[] = [];
-  let prev: string | null = null;
-
-  for (let i = 0; i < SLOT_COUNT; i++) {
-    const cms = cmsItems[i]?.thumbnailUrl;
-    if (cms) {
-      out[i] = { url: cms };
-      prev = cms;
-      continue;
-    }
-    const start = i % n;
-    let picked = FALLBACK_IMAGES[start];
-    for (let step = 0; step < n; step++) {
-      const url = FALLBACK_IMAGES[(start + step) % n];
-      if (url !== prev) {
-        picked = url;
-        break;
-      }
-    }
-    out[i] = { url: picked };
-    prev = picked;
-  }
-  return out;
-}
-
 function GridCopy({
   variant,
   slots,
   innerRef,
   cellFlash,
+  blockIndex,
+  lcpThumbUrl,
 }: {
   variant: 1 | 2;
   slots: SlotEntry[];
   innerRef?: React.RefObject<HTMLDivElement | null>;
   cellFlash?: boolean;
+  blockIndex: number;
+  lcpThumbUrl?: string;
 }) {
   const cfg = variant === 1 ? GRID_CYCLE1 : GRID_CYCLE2;
 
@@ -223,6 +190,13 @@ function GridCopy({
           ? "/icon/works-mask-big.svg"
           : "/works-mask.svg";
 
+        const isLcpThumbCell =
+          Boolean(lcpThumbUrl) &&
+          slot.url === lcpThumbUrl &&
+          blockIndex === 0 &&
+          variant === 1 &&
+          i === 0;
+
         const media = (
           <>
             <div className="absolute inset-0 overflow-hidden">
@@ -230,10 +204,12 @@ function GridCopy({
                 src={slot.url}
                 alt=""
                 fill
-                sizes="(max-width: 767px) 268px"
+                sizes="(max-width: 767px) 268px, 360px"
                 className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
                 draggable={false}
                 unoptimized={nextImageUnoptimized(slot.url)}
+                priority={isLcpThumbCell}
+                fetchPriority={isLcpThumbCell ? "high" : "auto"}
               />
             </div>
             <img
@@ -241,6 +217,7 @@ function GridCopy({
               alt=""
               aria-hidden={true}
               draggable={false}
+              fetchPriority="low"
               className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover object-center select-none"
             />
           </>
@@ -253,7 +230,7 @@ function GridCopy({
             style={{ gridArea: area.name }}
           >
             {cellFlash ? (
-              <AstroidRevealCell>{media}</AstroidRevealCell>
+              <CrtRevealCell>{media}</CrtRevealCell>
             ) : (
               media
             )}
@@ -267,9 +244,11 @@ function GridCopy({
 export function TopGrid({
   cmsItems,
   bootComplete,
+  lcpThumbUrl,
 }: {
   cmsItems: TopGridWorkItem[];
   bootComplete: boolean;
+  lcpThumbUrl?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cycleMeasureRef = useRef<HTMLDivElement>(null);
@@ -351,11 +330,15 @@ export function TopGrid({
               variant={1}
               slots={row.cycle1}
               cellFlash={cellFlash}
+              blockIndex={blockIndex}
+              lcpThumbUrl={lcpThumbUrl}
             />
             <GridCopy
               variant={2}
               slots={row.cycle2}
               cellFlash={cellFlash}
+              blockIndex={blockIndex}
+              lcpThumbUrl={lcpThumbUrl}
             />
           </div>
         ))}
@@ -371,11 +354,13 @@ export function TopGrid({
               variant={1}
               slots={row.cycle1}
               cellFlash={cellFlash}
+              blockIndex={blockIndex}
             />
             <GridCopy
               variant={2}
               slots={row.cycle2}
               cellFlash={cellFlash}
+              blockIndex={blockIndex}
             />
           </div>
         ))}
@@ -383,13 +368,9 @@ export function TopGrid({
     </div>
   );
 
-  /** ブート前: グリッドはレイアウトのまま invisible（display:hidden だと高さが消え CLS が悪化） */
+  /** ブート前は黒オーバーレイで隠す（invisible は LCP を遅延させるため使わない） */
   const gridBlock = (cellFlash: boolean) => (
-    <div
-      className={`flex min-h-0 min-w-0 flex-1 flex-col justify-end overflow-hidden${
-        !bootComplete ? " invisible" : ""
-      }`}
-    >
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-end overflow-hidden">
       {renderScrollStrip(cellFlash)}
     </div>
   );
@@ -409,10 +390,16 @@ export function TopGrid({
   return (
     <div className={rootClass}>
       {bootComplete ? (
-        <AstroidFlashProvider>{gridBlock(true)}</AstroidFlashProvider>
+        <CrtFlashProvider>{gridBlock(true)}</CrtFlashProvider>
       ) : (
         gridBlock(false)
       )}
+      {!bootComplete ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-[50] bg-black"
+          aria-hidden
+        />
+      ) : null}
     </div>
   );
 }
