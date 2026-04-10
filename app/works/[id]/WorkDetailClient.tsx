@@ -12,7 +12,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { WorkCreditLine, WorkDetailItem } from "@/app/lib/cmsTypes";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
-import { AstroidFlashProvider, AstroidRevealCell } from "../../components/AstroidFlash";
+import { CrtFlashProvider, CrtRevealCell } from "../../components/CrtFlash";
 import { Header } from "../../components/Header";
 import { LiteYouTubeEmbed } from "../../components/LiteYouTubeEmbed";
 import { ScrambleText } from "../../components/ScrambleText";
@@ -379,9 +379,9 @@ export function WorkDetailClient({ data }: Props) {
             className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 touch-auto ${imgAnim}`}
           >
             {useCrtEnter && !showYouTubePlayer ? (
-              <AstroidFlashProvider>
-                <AstroidRevealCell>{thumbnailContent}</AstroidRevealCell>
-              </AstroidFlashProvider>
+              <CrtFlashProvider>
+                <CrtRevealCell>{thumbnailContent}</CrtRevealCell>
+              </CrtFlashProvider>
             ) : (
               thumbnailContent
             )}

@@ -6,7 +6,14 @@ import type { TopGridWorkItem } from "@/app/lib/cmsTypes";
 import { TopFooter } from "./TopFooter";
 import { TopGrid } from "./TopGrid";
 
-export function HomeBootShell({ cmsItems }: { cmsItems: TopGridWorkItem[] }) {
+export function HomeBootShell({
+  cmsItems,
+  lcpThumbUrl,
+}: {
+  cmsItems: TopGridWorkItem[];
+  /** 先頭セルと同一 URL（preload と TopGrid の priority 用） */
+  lcpThumbUrl?: string;
+}) {
   const [bootDoneByTimer, setBootDoneByTimer] = useState(false);
   const prefersReducedMotion = usePrefersReducedMotion();
   const bootComplete = prefersReducedMotion || bootDoneByTimer;
@@ -29,19 +36,25 @@ export function HomeBootShell({ cmsItems }: { cmsItems: TopGridWorkItem[] }) {
   }, [prefersReducedMotion]);
 
   return (
-    <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)]">
+    <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)] -mt-[10px] md:-mt-[17px] -mx-[10px] md:-mx-[17px]">
       <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <TopGrid cmsItems={cmsItems} bootComplete={bootComplete} />
+          <TopGrid
+            cmsItems={cmsItems}
+            bootComplete={bootComplete}
+            lcpThumbUrl={lcpThumbUrl}
+          />
         </div>
       </section>
 
-      <div className="h-[var(--grid-row)]" />
+      <div className="px-[10px] md:px-[17px]">
+        <div className="h-[var(--grid-row)]" />
 
-      <TopFooter
-        bootComplete={bootComplete}
-        onBootSequenceEnd={onBootSequenceEnd}
-      />
+        <TopFooter
+          bootComplete={bootComplete}
+          onBootSequenceEnd={onBootSequenceEnd}
+        />
+      </div>
     </div>
   );
 }
