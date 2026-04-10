@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 type ScrambleTextProps = {
-  text: string;
+  text: string | null | undefined;
   className?: string;
   durationMs?: number;
   speedMs?: number;
@@ -25,7 +25,8 @@ export const ScrambleText = ({
 }: ScrambleTextProps) => {
   const textRef = useRef<HTMLSpanElement>(null);
   const timersRef = useRef<number[]>([]);
-  const words = useMemo(() => text.split(" "), [text]);
+  const safeText = useMemo(() => text ?? "", [text]);
+  const words = useMemo(() => safeText.split(" "), [safeText]);
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((timerId) => window.clearInterval(timerId));
@@ -71,7 +72,7 @@ export const ScrambleText = ({
       return;
     }
 
-    const letters = text.split("");
+    const letters = safeText.split("");
     let revealIndex = 0;
     const steps = Math.max(1, Math.floor(durationMs / speedMs));
     const revealStep = Math.max(1, Math.ceil(letters.length / steps));
@@ -96,7 +97,7 @@ export const ScrambleText = ({
     }, speedMs);
 
     timersRef.current.push(timerId);
-  }, [chars, clearTimers, durationMs, mode, speedMs, text]);
+  }, [chars, clearTimers, durationMs, mode, safeText, speedMs]);
 
   const handleMouseLeave = useCallback(() => {
     clearTimers();
@@ -112,8 +113,8 @@ export const ScrambleText = ({
       return;
     }
 
-    textRef.current.textContent = text;
-  }, [clearTimers, mode, text]);
+    textRef.current.textContent = safeText;
+  }, [clearTimers, mode, safeText]);
 
   useEffect(() => {
     if (active === undefined) return;
@@ -138,7 +139,7 @@ export const ScrambleText = ({
               {index < words.length - 1 ? " " : ""}
             </span>
           ))
-        : text}
+        : safeText}
     </span>
   );
 };

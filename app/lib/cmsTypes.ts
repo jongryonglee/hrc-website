@@ -78,8 +78,8 @@ export type GraphicDesignListItem = {
 export type ProducedWorkItem = {
   _id: string;
   title: string;
-  label: string;
   artist: string;
   role: string;
-  date: string;
+  album: string;
+  label: string;
 };

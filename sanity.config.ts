@@ -1,5 +1,6 @@
 import { defineConfig } from "sanity";
 import { deskTool } from "sanity/desk";
+import { producedWorksCsvImportPlugin } from "./sanity/plugins/producedWorksCsvImportPlugin";
 import { schemaTypes } from "./sanity/schemaTypes";
 
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "";
@@ -11,7 +12,7 @@ export default defineConfig({
   projectId,
   dataset,
   basePath: "/studio",
-  plugins: [deskTool()],
+  plugins: [deskTool(), producedWorksCsvImportPlugin()],
   schema: {
     types: schemaTypes,
   },
