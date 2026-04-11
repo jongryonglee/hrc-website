@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { orderRankField } from "@sanity/orderable-document-list";
 import { DocumentIcon } from "@sanity/icons";
 
 export const officeRecItem = defineType({
@@ -7,6 +8,7 @@ export const officeRecItem = defineType({
   type: "document",
   icon: DocumentIcon,
   fields: [
+    orderRankField({ type: "officeRecItem" }),
     defineField({
       name: "title",
       title: "Title",

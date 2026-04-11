@@ -1,4 +1,5 @@
 import { defineField, defineType } from "sanity";
+import { orderRankField } from "@sanity/orderable-document-list";
 import { PlayIcon } from "@sanity/icons";
 
 export const workItem = defineType({
@@ -7,6 +8,7 @@ export const workItem = defineType({
   type: "document",
   icon: PlayIcon,
   fields: [
+    orderRankField({ type: "workItem" }),
     defineField({
       name: "title",
       title: "Title",
@@ -62,6 +64,13 @@ export const workItem = defineType({
       type: "image",
       options: { hotspot: true },
       validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "video",
+      title: "Video (Mux)",
+      type: "mux.video",
+      description:
+        "Mux でホストする動画。アップロードすると自動的にストリーミング配信される。",
     }),
     defineField({
       name: "videoUrl",

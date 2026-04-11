@@ -1,5 +1,7 @@
 import { defineConfig } from "sanity";
 import { deskTool } from "sanity/desk";
+import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
+import { muxInput } from "sanity-plugin-mux-input";
 import { producedWorksCsvImportPlugin } from "./sanity/plugins/producedWorksCsvImportPlugin";
 import { schemaTypes } from "./sanity/schemaTypes";
 
@@ -12,7 +14,42 @@ export default defineConfig({
   projectId,
   dataset,
   basePath: "/studio",
-  plugins: [deskTool(), producedWorksCsvImportPlugin()],
+  plugins: [
+    deskTool({
+      structure: (S, context) => {
+        return S.list()
+          .title("Content")
+          .items([
+            orderableDocumentListDeskItem({
+              type: "workItem",
+              title: "Works",
+              S,
+              context,
+            }),
+            orderableDocumentListDeskItem({
+              type: "graphicDesignItem",
+              title: "Graphic Design",
+              S,
+              context,
+            }),
+            orderableDocumentListDeskItem({
+              type: "producedWorkItem",
+              title: "Produced Works",
+              S,
+              context,
+            }),
+            orderableDocumentListDeskItem({
+              type: "officeRecItem",
+              title: "Office Rec",
+              S,
+              context,
+            }),
+          ]);
+      },
+    }),
+    muxInput(),
+    producedWorksCsvImportPlugin(),
+  ],
   schema: {
     types: schemaTypes,
   },
