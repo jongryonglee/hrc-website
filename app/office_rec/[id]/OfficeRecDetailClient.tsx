@@ -8,15 +8,19 @@ import {
   useState,
 } from "react";
 import Image from "next/image";
+import MuxVideo from "@mux/mux-video-react";
 import { useRouter } from "next/navigation";
 import type { OfficeRecDetailItem } from "@/app/lib/cmsTypes";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
+import { CrtFlashProvider, CrtRevealCell } from "../../components/CrtFlash";
 import { Header } from "../../components/Header";
+import { ScrambleText } from "../../components/ScrambleText";
 import { SoundToggle } from "../../components/SoundToggle";
 
 const STORAGE_ENTER = "officeRecDetailEnterTransition";
 /** transitionTo でセット。遷移先 id と一致するときだけ内部入場として砂嵐入場を許可 */
 const STORAGE_ENTER_TARGET_ID = "officeRecDetailEnterTargetId";
+const STORAGE_CRT_FROM_OFFICE_REC_LIST = "officeRecDetailCrtFromOfficeRecList";
 const STORAGE_LOCK = "officeRecDetailNavLockUntil";
 
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
@@ -41,11 +45,22 @@ export function OfficeRecDetailClient({ data }: Props) {
   const [enterActive, setEnterActive] = useState(false);
   const [sandstormExit, setSandstormExit] = useState(false);
   const [sandstormEnter, setSandstormEnter] = useState(false);
+  const [useCrtEnter, setUseCrtEnter] = useState(false);
+  const [muxSoundOn, setMuxSoundOn] = useState(false);
   const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
   const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
+  const muxVideoRef = useRef<HTMLVideoElement | null>(null);
   const thumbnailGestureRef = useRef<HTMLDivElement | null>(null);
+
+  const hasMuxVideo = Boolean(data?.muxPlaybackId);
+
+  const handleMuxSoundChange = useCallback((on: boolean) => {
+    setMuxSoundOn(on);
+    const v = muxVideoRef.current;
+    if (v) v.muted = !on;
+  }, []);
 
   useEffect(() => {
     exitingRef.current = false;
@@ -69,18 +84,41 @@ export function OfficeRecDetailClient({ data }: Props) {
     const targetId = sessionStorage.getItem(STORAGE_ENTER_TARGET_ID);
     const isSequentialEnter = enter === "1" && targetId === data._id;
 
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     if (isSequentialEnter) {
       sessionStorage.removeItem(STORAGE_ENTER);
       sessionStorage.removeItem(STORAGE_ENTER_TARGET_ID);
       setEnterActive(true);
+      setUseCrtEnter(false);
       const allowSandstorm =
-        Boolean(data?.thumbnailUrl) &&
-        !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        (Boolean(data?.thumbnailUrl) || hasMuxVideo) && !reduceMotion;
       setSandstormEnter(allowSandstorm);
+      try {
+        sessionStorage.removeItem(STORAGE_CRT_FROM_OFFICE_REC_LIST);
+      } catch {
+        /* ignore */
+      }
     } else {
       setEnterActive(false);
       setSandstormEnter(false);
+      const stored = sessionStorage.getItem(STORAGE_CRT_FROM_OFFICE_REC_LIST);
+      const fromList = stored === data._id;
+      setUseCrtEnter(fromList && !reduceMotion);
     }
+  }, [data?._id, data?.thumbnailUrl, hasMuxVideo]);
+
+  useEffect(() => {
+    if (!data?._id) return;
+    const stored = sessionStorage.getItem(STORAGE_CRT_FROM_OFFICE_REC_LIST);
+    if (stored !== data._id) return;
+    queueMicrotask(() => {
+      try {
+        sessionStorage.removeItem(STORAGE_CRT_FROM_OFFICE_REC_LIST);
+      } catch {
+        /* ignore */
+      }
+    });
   }, [data?._id]);
 
   const transitionTo = useCallback(
@@ -103,7 +141,7 @@ export function OfficeRecDetailClient({ data }: Props) {
         sessionStorage.setItem(STORAGE_ENTER_TARGET_ID, nextId);
       }
       if (
-        data?.thumbnailUrl &&
+        (data?.thumbnailUrl || hasMuxVideo) &&
         isOfficeRecToOfficeRecHref(href) &&
         !window.matchMedia("(prefers-reduced-motion: reduce)").matches
       ) {
@@ -116,7 +154,7 @@ export function OfficeRecDetailClient({ data }: Props) {
         router.push(href);
       }, EXIT_MS);
     },
-    [router, data?.thumbnailUrl]
+    [router, data?.thumbnailUrl, hasMuxVideo]
   );
 
   useEffect(() => {
@@ -235,9 +273,48 @@ export function OfficeRecDetailClient({ data }: Props) {
   }, [sequentialNav]);
 
   const showSandstorm =
-    Boolean(data?.thumbnailUrl) && (sandstormExit || sandstormEnter);
+    (Boolean(data?.thumbnailUrl) || hasMuxVideo) &&
+    (sandstormExit || sandstormEnter);
 
-  const thumbnailContent = data?.thumbnailUrl ? (
+  const sandstormVideoEl = showSandstorm ? (
+    <video
+      ref={sandstormVideoRef}
+      src={SANDSTORM_SRC}
+      className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
+      loop
+      muted
+      playsInline
+      preload="auto"
+      aria-hidden
+    />
+  ) : null;
+
+  const worksMask = (
+    <img
+      src="/works-mask.svg"
+      alt=""
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
+    />
+  );
+
+  const thumbnailContent = hasMuxVideo ? (
+    <>
+      <div className="absolute inset-0 overflow-hidden">
+        <MuxVideo
+          ref={muxVideoRef}
+          playbackId={data!.muxPlaybackId!}
+          autoPlay="muted"
+          muted={!muxSoundOn}
+          loop
+          playsInline
+          className="absolute inset-0 z-0 h-full w-full object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
+        />
+        {sandstormVideoEl}
+      </div>
+      {worksMask}
+    </>
+  ) : data?.thumbnailUrl ? (
     <>
       <div className="absolute inset-0 overflow-hidden">
         <Image
@@ -249,25 +326,9 @@ export function OfficeRecDetailClient({ data }: Props) {
           className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
           unoptimized={nextImageUnoptimized(data.thumbnailUrl)}
         />
-        {showSandstorm && (
-          <video
-            ref={sandstormVideoRef}
-            src={SANDSTORM_SRC}
-            className="work-detail-sandstorm-video max-md:scale-[0.992] max-md:[transform-origin:center]"
-            loop={sandstormExit || sandstormEnter}
-            muted
-            playsInline
-            preload="auto"
-            aria-hidden
-          />
-        )}
+        {sandstormVideoEl}
       </div>
-      <img
-        src="/works-mask.svg"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[2] h-full w-full object-cover object-center select-none"
-      />
+      {worksMask}
     </>
   ) : (
     <div className="absolute inset-0 rounded-[16px] bg-white/10" />
@@ -327,15 +388,81 @@ export function OfficeRecDetailClient({ data }: Props) {
             ref={thumbnailGestureRef}
             className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 ${imgAnim}`}
           >
-            {thumbnailContent}
+            {useCrtEnter ? (
+              <CrtFlashProvider>
+                <CrtRevealCell>{thumbnailContent}</CrtRevealCell>
+              </CrtFlashProvider>
+            ) : (
+              thumbnailContent
+            )}
           </div>
         </div>
 
-        <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:pb-[34px]">
-          <div className="layout-grid pointer-events-auto">
-            <div className="col-span-6 md:col-span-4 flex flex-col gap-1 min-h-[1px]" />
-            <div className="col-start-8 col-span-2 md:col-start-17 md:col-span-2 self-end">
-              <SoundToggle />
+        <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:mb-[17px]">
+          <div className="layout-grid pointer-events-auto md:pointer-events-none">
+            <div className="col-span-3 md:col-span-2 flex flex-col gap-1 md:pointer-events-auto justify-end">
+              <a
+                href={data?.videoUrl ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link_co flex items-center gap-2 whitespace-nowrap"
+              >
+                <ScrambleText text="YouTube" mode="lap" speedMs={40} durationMs={400} />
+                <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+              </a>
+              <span
+                className="link_co flex items-center gap-2 whitespace-nowrap"
+                aria-disabled="true"
+              >
+                <ScrambleText text="Sound Cloud" mode="lap" speedMs={40} durationMs={400} />
+                <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+              </span>
+              <span
+                className="link_co flex items-center gap-2 whitespace-nowrap"
+                aria-disabled="true"
+              >
+                <ScrambleText text="Instagram" mode="lap" speedMs={40} durationMs={400} />
+                <Image src="/icon-hicard.svg" alt="" width={9} height={9} className="link_co-icon" />
+              </span>
+            </div>
+            <div className="col-start-8 col-span-2 md:col-start-17 md:col-span-2 self-end flex flex-col items-start gap-[34px] md:pointer-events-auto">
+              {sequentialNav && (
+                <div className="flex flex-col items-start gap-1">
+                  <button
+                    type="button"
+                    onClick={tryNavigatePrev}
+                    className="flex items-center gap-2 text-left text-[14px] leading-[1.1] md:text-[15px] cursor-pointer hover:opacity-70 transition-opacity"
+                  >
+                    <Image
+                      src="/arrow-down.svg"
+                      alt=""
+                      width={11}
+                      height={11}
+                      className="shrink-0 rotate-180"
+                      aria-hidden
+                    />
+                    <ScrambleText text="Previous" mode="lap" speedMs={40} durationMs={400} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={tryNavigateNext}
+                    className="flex items-center gap-2 text-left text-[14px] leading-[1.1] md:text-[15px] cursor-pointer hover:opacity-70 transition-opacity"
+                  >
+                    <Image
+                      src="/arrow-down.svg"
+                      alt=""
+                      width={11}
+                      height={11}
+                      className="shrink-0"
+                      aria-hidden
+                    />
+                    <ScrambleText text="Next" mode="lap" speedMs={40} durationMs={400} />
+                  </button>
+                </div>
+              )}
+              <SoundToggle
+                onSoundChange={hasMuxVideo ? handleMuxSoundChange : undefined}
+              />
             </div>
           </div>
         </div>

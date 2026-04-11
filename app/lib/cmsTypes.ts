@@ -63,6 +63,8 @@ export type OfficeRecDetailItem = {
   _id: string;
   title: string;
   artist: string;
+  videoUrl?: string | null;
+  muxPlaybackId?: string | null;
   thumbnailUrl?: string | null;
   nextId?: string | null;
   prevId?: string | null;

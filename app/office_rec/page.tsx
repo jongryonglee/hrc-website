@@ -1,9 +1,10 @@
 import type { OfficeRecListItem } from "@/app/lib/cmsTypes";
 import { fetchSanityOr } from "@/sanity/lib/fetch";
 import { OFFICE_REC_ITEMS_QUERY } from "@/sanity/lib/queries";
-import { ContentGrid, type GridItem } from "../components/ContentGrid";
+import type { GridItem } from "../components/ContentGrid";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
+import { OfficeRecGrid } from "./OfficeRecGrid";
 
 export default async function OfficeRecPage() {
   const sourceItems = await fetchSanityOr<OfficeRecListItem[]>(
@@ -45,7 +46,7 @@ export default async function OfficeRecPage() {
         </div>
       </section>
 
-      <ContentGrid items={officeRecItems} rounded={true} />
+      <OfficeRecGrid items={officeRecItems} />
       <section>
         <div className="layout-grid">
           <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />

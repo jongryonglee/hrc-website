@@ -19,6 +19,8 @@ type ContentGridProps = {
   showMask?: boolean;
   imageClassName?: string;
   rounded?: boolean;
+  /** カード遷移の直前に呼ばれるコールバック（CRT ストレージセットなどに使用） */
+  onBeforeNavigate?: (href: string, key: string) => void;
 };
 
 export const ContentGrid = ({
@@ -26,6 +28,7 @@ export const ContentGrid = ({
   showMask = false,
   imageClassName = "object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]",
   rounded = false,
+  onBeforeNavigate,
 }: ContentGridProps) => {
   const router = useRouter();
 
@@ -35,7 +38,9 @@ export const ContentGrid = ({
       <div className="grid grid-cols-2 gap-[17px] md:grid-cols-5 md:gap-[17px]">
         {items.map((item, i) => {
           const go = () => {
-            if (item.href) router.push(item.href);
+            if (!item.href) return;
+            onBeforeNavigate?.(item.href, item._key);
+            router.push(item.href);
           };
 
           const onKeyDown = (e: KeyboardEvent) => {

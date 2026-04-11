@@ -76,6 +76,8 @@ export const OFFICE_REC_ITEM_QUERY = defineQuery(/* groq */ `
     _id,
     title,
     artist,
+    videoUrl,
+    "muxPlaybackId": video.asset->playbackId,
     "thumbnailUrl": thumbnail.asset->url + ${IMG_LG},
     "nextId": coalesce(
       *[_type == "officeRecItem" && orderRank > ^.orderRank] | order(orderRank asc)[0]._id,

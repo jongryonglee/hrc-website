@@ -28,5 +28,19 @@ export const officeRecItem = defineType({
       options: { hotspot: true },
       validation: (rule) => rule.required(),
     }),
+    defineField({
+      name: "video",
+      title: "Video (Mux)",
+      type: "mux.video",
+      description:
+        "Mux でホストする動画。アップロードすると自動的にストリーミング配信される。",
+    }),
+    defineField({
+      name: "videoUrl",
+      title: "Video URL",
+      type: "url",
+      description: "YouTube などの外部動画 URL。",
+      validation: (rule) => rule.required(),
+    }),
   ],
 });

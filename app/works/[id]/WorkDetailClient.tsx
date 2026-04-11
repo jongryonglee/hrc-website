@@ -25,6 +25,10 @@ const STORAGE_CRT_FROM_WORKS_LIST = "workDetailCrtFromWorksList";
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
 const SANDSTORM_ENTER_HOLD_MS = 600;
 
+const NAV_COOLDOWN_MS = 1400;
+const EXIT_MS = 420;
+const WHEEL_NEXT_ON_SCROLL_UP = false;
+
 const FALLBACK_CREDITS: WorkCreditLine[] = [
   { label: "Prod.", name: "theeluu" },
   { label: "Directer", name: "Hikaru Jamie Masamiya" },
@@ -60,8 +64,11 @@ export function WorkDetailClient({ data }: Props) {
   const [useCrtEnter, setUseCrtEnter] = useState(false);
   const [muxSoundOn, setMuxSoundOn] = useState(false);
   const exitingRef = useRef(false);
+  const lockUntilRef = useRef(0);
+  const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
   const muxVideoRef = useRef<HTMLVideoElement | null>(null);
+  const thumbnailGestureRef = useRef<HTMLDivElement | null>(null);
 
   const hasMuxVideo = Boolean(data?.muxPlaybackId);
 
@@ -80,6 +87,15 @@ export function WorkDetailClient({ data }: Props) {
 
   useLayoutEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
+    const lockStr = sessionStorage.getItem("workDetailNavLockUntil");
+    if (lockStr) {
+      const until = parseInt(lockStr, 10);
+      if (!Number.isNaN(until) && Date.now() < until) {
+        lockUntilRef.current = until;
+      }
+      sessionStorage.removeItem("workDetailNavLockUntil");
+    }
+
     if (!data?._id) {
       return;
     }
@@ -131,16 +147,24 @@ export function WorkDetailClient({ data }: Props) {
     });
   }, [data?._id]);
 
-  /** Next のルーターと URL を一致させる（pushState は使わない） */
-  const goSequential = useCallback(
-    (nextId: string) => {
+  const transitionTo = useCallback(
+    (targetId: string) => {
       if (exitingRef.current) return;
-      if (!nextId || nextId === data?._id) return;
+      if (!targetId || targetId === data?._id) return;
+      if (Date.now() < lockUntilRef.current) return;
+
+      if (transitionPushTimerRef.current) {
+        clearTimeout(transitionPushTimerRef.current);
+        transitionPushTimerRef.current = null;
+      }
 
       exitingRef.current = true;
+      const until = Date.now() + NAV_COOLDOWN_MS;
+      lockUntilRef.current = until;
       try {
+        sessionStorage.setItem("workDetailNavLockUntil", String(until));
         sessionStorage.setItem(STORAGE_ENTER, "1");
-        sessionStorage.setItem(STORAGE_ENTER_TARGET_ID, nextId);
+        sessionStorage.setItem(STORAGE_ENTER_TARGET_ID, targetId);
       } catch {
         /* ignore */
       }
@@ -151,24 +175,43 @@ export function WorkDetailClient({ data }: Props) {
       }
       setExiting(true);
 
-      requestAnimationFrame(() => {
-        router.replace(`/works/${nextId}`, { scroll: false });
-      });
+      transitionPushTimerRef.current = window.setTimeout(() => {
+        transitionPushTimerRef.current = null;
+        router.push(`/works/${targetId}`);
+      }, EXIT_MS);
     },
-    [data, router],
+    [data?._id, data?.thumbnailUrl, hasMuxVideo, router],
   );
 
   const tryNavigateNext = useCallback(() => {
     const nextId = data?.nextId;
     if (!nextId || nextId === data?._id) return;
-    goSequential(nextId);
-  }, [data?._id, data?.nextId, goSequential]);
+    transitionTo(nextId);
+  }, [data?._id, data?.nextId, transitionTo]);
 
   const tryNavigatePrev = useCallback(() => {
     const prevId = data?.prevId;
     if (!prevId || prevId === data?._id) return;
-    goSequential(prevId);
-  }, [data?._id, data?.prevId, goSequential]);
+    transitionTo(prevId);
+  }, [data?._id, data?.prevId, transitionTo]);
+
+  const tryNavigateNextRef = useRef(tryNavigateNext);
+  const tryNavigatePrevRef = useRef(tryNavigatePrev);
+
+  useLayoutEffect(() => {
+    tryNavigateNextRef.current = tryNavigateNext;
+    tryNavigatePrevRef.current = tryNavigatePrev;
+  }, [tryNavigateNext, tryNavigatePrev]);
+
+  useEffect(() => {
+    return () => {
+      if (transitionPushTimerRef.current) {
+        clearTimeout(transitionPushTimerRef.current);
+        transitionPushTimerRef.current = null;
+        exitingRef.current = false;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!data?._id) return;
@@ -213,6 +256,72 @@ export function WorkDetailClient({ data }: Props) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [router]);
+
+  const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
+
+  useEffect(() => {
+    if (!sequentialNav) return;
+    const el = thumbnailGestureRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) return;
+      const dy = e.deltaY;
+      const dx = e.deltaX;
+      if (dy === 0) return;
+      if (Math.abs(dx) >= Math.abs(dy)) return;
+      const isScrollUp = dy < 0;
+      const wantsNext = WHEEL_NEXT_ON_SCROLL_UP ? isScrollUp : !isScrollUp;
+      if (wantsNext) tryNavigateNextRef.current();
+      else tryNavigatePrevRef.current();
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: true });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [sequentialNav]);
+
+  useEffect(() => {
+    if (!sequentialNav) return;
+    const el = thumbnailGestureRef.current;
+    if (!el) return;
+
+    let startY = 0;
+    let startX = 0;
+    let multiTouchGesture = false;
+    const threshold = 48;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        multiTouchGesture = true;
+        return;
+      }
+      multiTouchGesture = false;
+      startY = e.touches[0]?.clientY ?? 0;
+      startX = e.touches[0]?.clientX ?? 0;
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length > 0) return;
+      if (multiTouchGesture) {
+        multiTouchGesture = false;
+        return;
+      }
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const deltaY = t.clientY - startY;
+      const deltaX = t.clientX - startX;
+      if (Math.abs(deltaX) >= Math.abs(deltaY)) return;
+      if (deltaY > threshold) tryNavigateNextRef.current();
+      else if (-deltaY > threshold) tryNavigatePrevRef.current();
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [sequentialNav]);
 
   const showSandstorm =
     (Boolean(data?.thumbnailUrl) || hasMuxVideo) &&
@@ -301,8 +410,6 @@ export function WorkDetailClient({ data }: Props) {
         ? "work-detail-enter-credits"
         : "";
 
-  const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
-
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <section
@@ -337,7 +444,8 @@ export function WorkDetailClient({ data }: Props) {
           className="md:[grid-area:1/1] md:z-0 md:flex md:items-center md:justify-center"
         >
           <div
-            className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 touch-auto ${imgAnim}`}
+            ref={thumbnailGestureRef}
+            className={`relative aspect-[268/204] touch-pan-y w-[95vw] mx-auto md:h-[80vh] md:w-auto md:max-w-none md:shrink-0 md:mx-0 ${imgAnim}`}
           >
             {useCrtEnter ? (
               <CrtFlashProvider>
