@@ -9,10 +9,10 @@ const IMG_MD  = '"?w=960&auto=format&fit=max&q=80"';   // ホバープレビュ�
 const IMG_LG  = '"?w=1600&auto=format&fit=max&q=82"';  // 詳細ページのヒーロー
 const IMG_ICON = '"?w=480&auto=format&fit=max&q=80"';  // グラフィックデザイン小
 
-// トップページ用：最新15件のサムネイルのみ取得
+// トップページ用：上位15件のサムネイルのみ取得
 export const TOP_GRID_QUERY = defineQuery(/* groq */ `
   *[_type == "workItem"]
-    | order(_createdAt desc) [0...15] {
+    | order(orderRank asc, _createdAt desc) [0...15] {
       _id,
       "thumbnailUrl": thumbnail.asset->url + ${IMG_SM}
     }
@@ -20,7 +20,7 @@ export const TOP_GRID_QUERY = defineQuery(/* groq */ `
 
 export const WORKS_ITEMS_QUERY = defineQuery(/* groq */ `
   *[_type == "workItem"]
-    | order(_createdAt desc) {
+    | order(orderRank asc, _createdAt desc) {
       _id,
       title,
       artist,
@@ -42,6 +42,7 @@ export const WORK_ITEM_QUERY = defineQuery(/* groq */ `
     producer,
     category,
     videoUrl,
+    "muxPlaybackId": video.asset->playbackId,
     "soundUrl": soundFile.asset->url,
     credits[]{
       _key,
@@ -50,19 +51,19 @@ export const WORK_ITEM_QUERY = defineQuery(/* groq */ `
     },
     "thumbnailUrl": thumbnail.asset->url + ${IMG_LG},
     "nextId": coalesce(
-      *[_type == "workItem" && _createdAt < ^._createdAt] | order(_createdAt desc)[0]._id,
-      *[_type == "workItem"] | order(_createdAt desc)[0]._id
+      *[_type == "workItem" && orderRank > ^.orderRank] | order(orderRank asc)[0]._id,
+      *[_type == "workItem"] | order(orderRank asc)[0]._id
     ),
     "prevId": coalesce(
-      *[_type == "workItem" && _createdAt > ^._createdAt] | order(_createdAt asc)[0]._id,
-      *[_type == "workItem"] | order(_createdAt asc)[0]._id
+      *[_type == "workItem" && orderRank < ^.orderRank] | order(orderRank desc)[0]._id,
+      *[_type == "workItem"] | order(orderRank desc)[0]._id
     )
   }
 `);
 
 export const OFFICE_REC_ITEMS_QUERY = defineQuery(/* groq */ `
   *[_type == "officeRecItem"]
-    | order(_createdAt desc) {
+    | order(orderRank asc, _createdAt desc) {
       _id,
       title,
       artist,
@@ -75,21 +76,23 @@ export const OFFICE_REC_ITEM_QUERY = defineQuery(/* groq */ `
     _id,
     title,
     artist,
+    videoUrl,
+    "muxPlaybackId": video.asset->playbackId,
     "thumbnailUrl": thumbnail.asset->url + ${IMG_LG},
     "nextId": coalesce(
-      *[_type == "officeRecItem" && _createdAt < ^._createdAt] | order(_createdAt desc)[0]._id,
-      *[_type == "officeRecItem"] | order(_createdAt desc)[0]._id
+      *[_type == "officeRecItem" && orderRank > ^.orderRank] | order(orderRank asc)[0]._id,
+      *[_type == "officeRecItem"] | order(orderRank asc)[0]._id
     ),
     "prevId": coalesce(
-      *[_type == "officeRecItem" && _createdAt > ^._createdAt] | order(_createdAt asc)[0]._id,
-      *[_type == "officeRecItem"] | order(_createdAt asc)[0]._id
+      *[_type == "officeRecItem" && orderRank < ^.orderRank] | order(orderRank desc)[0]._id,
+      *[_type == "officeRecItem"] | order(orderRank desc)[0]._id
     )
   }
 `);
 
 export const GRAPHIC_DESIGN_ITEMS_QUERY = defineQuery(/* groq */ `
   *[_type == "graphicDesignItem"]
-    | order(_createdAt desc) {
+    | order(orderRank asc, _createdAt desc) {
       _id,
       title,
       category,
@@ -99,7 +102,7 @@ export const GRAPHIC_DESIGN_ITEMS_QUERY = defineQuery(/* groq */ `
 
 export const PRODUCED_WORK_ITEMS_QUERY = defineQuery(/* groq */ `
   *[_type == "producedWorkItem"]
-    | order(_createdAt desc) {
+    | order(orderRank asc, _createdAt desc) {
       _id,
       title,
       artist,

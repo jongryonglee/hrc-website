@@ -39,6 +39,8 @@ export type WorkDetailItem = {
   category: "music-video" | "sound-effect";
   /** Music Video では必須想定。Sound Effect では未設定の場合あり */
   videoUrl?: string | null;
+  /** Mux の playback ID（video フィールドが設定されている場合） */
+  muxPlaybackId?: string | null;
   /** Sound Effect 用（Sanity の soundFile） */
   soundUrl?: string | null;
   /** 作品ごとに可変件数のクレジット行 */
@@ -61,6 +63,8 @@ export type OfficeRecDetailItem = {
   _id: string;
   title: string;
   artist: string;
+  videoUrl?: string | null;
+  muxPlaybackId?: string | null;
   thumbnailUrl?: string | null;
   nextId?: string | null;
   prevId?: string | null;
