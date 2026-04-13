@@ -451,7 +451,7 @@ export function DetailLayout({
         : "";
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden px-[10px] py-[15px] md:p-[17px]">
       <section
         className="flex flex-col flex-1 md:grid overflow-hidden"
         style={{ gridTemplateRows: "1fr" }}

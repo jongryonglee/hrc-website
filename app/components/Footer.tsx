@@ -3,7 +3,7 @@ import { ScrambleText } from "./ScrambleText";
 
 export const Footer = () => {
   return (
-    <footer >
+    <footer className="mt-[15px] md:mt-[17px]">
       <div className="layout-grid items-start whitespace-nowrap md:[&>div]:[grid-row:span_6]">
         <div className="md:col-span-8">
           <p>Music Label</p>
@@ -22,7 +22,7 @@ export const Footer = () => {
             href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 whitespace-nowrap text-left"
+            className="link_co inline-flex items-center gap-2 whitespace-nowrap text-left"
           >
             <ScrambleText text="Google Map" mode="lap" speedMs={40} durationMs={400} />
             <Image
@@ -30,7 +30,7 @@ export const Footer = () => {
               alt=""
               width={9}
               height={9}
-              className="inline-block"
+              className="link_co-icon"
             />
           </a>
         </div>

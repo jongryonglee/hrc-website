@@ -71,17 +71,17 @@ export function WorksPageClient({ initialItems }: Props) {
     !!(hovered?.thumbnailUrl && hoverIndex !== null);
 
   return (
-    <div className="flex min-h-full flex-col flex-1">
+    <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
       {/* Title & summary */}
-      <section>
+      <section className="mt-[30px] md:mt-[0px]">
         <div className="layout-grid">
           {/* (Works): 上から5グリッド分 */}
           <div className="grid-full [grid-row:span_4] md:[grid-row:span_5]">
             <h1>(Works)</h1>
           </div>
-          <div className="grid-full [grid-row:span_2]">
+          <div className="grid-full [grid-row:span_1]">
             <p className="whitespace-nowrap">
               {filterButtons.map((btn, i) => (
                 <span key={btn.key}>
@@ -233,9 +233,6 @@ export function WorksPageClient({ initialItems }: Props) {
             </div>
           )}
         </section>
-        <div className="layout-grid">
-          <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
-        </div>
       </section>
 
       <div className="mt-auto">

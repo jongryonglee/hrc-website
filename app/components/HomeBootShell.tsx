@@ -36,7 +36,7 @@ export function HomeBootShell({
   }, [prefersReducedMotion]);
 
   return (
-    <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-[calc(100dvh-30px)] md:h-[calc(100dvh-34px)] -mt-[10px] md:-mt-[17px] -mx-[10px] md:-mx-[17px]">
+    <div className="flex min-w-0 flex-col overflow-x-hidden overflow-y-hidden h-dvh">
       <section className="relative flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <TopGrid
@@ -47,9 +47,7 @@ export function HomeBootShell({
         </div>
       </section>
 
-      <div className="px-[10px] md:px-[17px]">
-        <div className="h-[var(--grid-row)]" />
-
+      <div className="px-[10px] py-[15px] md:px-[17px] md:py-[17px]">
         <TopFooter
           bootComplete={bootComplete}
           onBootSequenceEnd={onBootSequenceEnd}

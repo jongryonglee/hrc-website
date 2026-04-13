@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
+import { ScrambleText } from "../components/ScrambleText";
 
 type ContactFormState = {
   name: string;
@@ -31,7 +32,9 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function ContactPage() {
   const [formState, setFormState] = useState<ContactFormState>(initialState);
   const [errors, setErrors] = useState<ContactFormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -40,7 +43,7 @@ export default function ContactPage() {
     setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: ContactFormErrors = {};
 
@@ -63,7 +66,30 @@ export default function ContactPage() {
     if (Object.keys(nextErrors).length > 0) {
       return;
     }
-    setIsSubmitted(true);
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formState),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "送信に失敗しました");
+      }
+
+      setIsSubmitted(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "送信中にエラーが発生しました"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getInputClass = (hasError: boolean) =>
@@ -73,10 +99,10 @@ export default function ContactPage() {
     ].join(" ");
 
   return (
-    <div className="flex min-h-full flex-col flex-1">
+    <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
-      <section>
+      <section className="mt-[30px] md:mt-[0px]">
         <div className="layout-grid">
           <div className="grid-full [grid-row:span_4] md:[grid-row:span_5]">
             <h1>(Contact)</h1>
@@ -86,9 +112,9 @@ export default function ContactPage() {
             <div className="grid-full mt-[0px] md:mt-[0px]">
               <p>Thank you!</p>
               <p>内容を確認のうえ、追って連絡させていただきます。</p>
-              <Link href="/" className="flex w-fit items-center hover:opacity-70 transition-opacity mt-[15px] md:mt-[15px]">
-                <Image src="/arrow-right.svg" alt="" width={17} height={17} />
-                <span>Back to top</span>
+              <Link href="/" className="link_co flex w-fit items-center gap-1 mt-[15px] md:mt-[15px]">
+                <Image src="/arrow-right.svg" alt="" width={17} height={17} className="link_co-icon" />
+                <ScrambleText text="Back to top" mode="lap" speedMs={40} durationMs={400} />
               </Link>
             </div>
 
@@ -325,14 +351,25 @@ export default function ContactPage() {
                   </div>
                 </div>
 
+                {submitError && (
+                  <div className="flex items-center gap-x-[10px] md:gap-x-[17px]">
+                    <div className="w-[120px] shrink-0" />
+                    <p className="flex-1 text-red-500 text-[13px]">{submitError}</p>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-x-[10px] md:gap-x-[17px]">
                   <div className="w-[120px] shrink-0" />
                   <div className="flex-1 pb-[1px]">
                     <button
                       type="submit"
-                      className="text-white hover:text-white transition-colors"
+                      disabled={isSubmitting}
+                      className="link_co text-white hover:text-white transition-colors disabled:opacity-50"
                     >
-                      <p>→送信する</p>
+                      <span className="flex items-center gap-1">
+                        <Image src="/arrow-right.svg" alt="" width={17} height={17} className="link_co-icon" />
+                        <ScrambleText text={isSubmitting ? "送信中..." : "送信する"} mode="lap" speedMs={40} durationMs={400} />
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -344,12 +381,6 @@ export default function ContactPage() {
       </section>
 
     
-
-      <section className="mt-[68px]">
-        <div className="layout-grid">
-          <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
-        </div>
-      </section>
 
       <div className="mt-auto">
         <Footer />
