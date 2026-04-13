@@ -42,6 +42,8 @@ export const WORK_ITEM_QUERY = defineQuery(/* groq */ `
     producer,
     category,
     videoUrl,
+    soundCloudUrl,
+    instagramUrl,
     "muxPlaybackId": video.asset->playbackId,
     "soundUrl": soundFile.asset->url,
     credits[]{

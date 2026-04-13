@@ -2,6 +2,7 @@ import { defineConfig } from "sanity";
 import { deskTool } from "sanity/desk";
 import { orderableDocumentListDeskItem } from "@sanity/orderable-document-list";
 import { muxInput } from "sanity-plugin-mux-input";
+import { bulkDeletePlugin } from "./sanity/plugins/bulkDeletePlugin";
 import { producedWorksCsvImportPlugin } from "./sanity/plugins/producedWorksCsvImportPlugin";
 import { schemaTypes } from "./sanity/schemaTypes";
 
@@ -49,6 +50,7 @@ export default defineConfig({
     }),
     muxInput(),
     producedWorksCsvImportPlugin(),
+    bulkDeletePlugin(),
   ],
   schema: {
     types: schemaTypes,

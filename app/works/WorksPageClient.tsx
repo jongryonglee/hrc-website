@@ -19,11 +19,14 @@ type Props = {
   initialItems: WorkItem[];
 };
 
+type FilterCategory = "all" | "music-video" | "sound-effect";
+
 export function WorksPageClient({ initialItems }: Props) {
   const router = useRouter();
   const canHover = useCanHover();
   const [hovered, setHovered] = useState<WorkItem | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [filter, setFilter] = useState<FilterCategory>("all");
 
   const handleRowClick = useCallback((id: string) => {
     try {
@@ -52,10 +55,17 @@ export function WorksPageClient({ initialItems }: Props) {
     },
     { all: 0, musicVideo: 0, soundEffect: 0 }
   );
-  const summaryText =
-    counts.all > 0
-      ? `all${counts.all} / music video${counts.musicVideo} / sound effect${counts.soundEffect}`
-      : "all1 / music video1 / sound effect0";
+
+  const filterButtons: { key: FilterCategory; label: string; count: number }[] = [
+    { key: "all", label: "all", count: counts.all },
+    { key: "music-video", label: "music video", count: counts.musicVideo },
+    { key: "sound-effect", label: "sound effect", count: counts.soundEffect },
+  ];
+
+  const filteredItems =
+    filter === "all"
+      ? initialItems
+      : initialItems.filter((item) => item.category === filter);
 
   const showHoverPreview =
     !!(hovered?.thumbnailUrl && hoverIndex !== null);
@@ -72,7 +82,23 @@ export function WorksPageClient({ initialItems }: Props) {
             <h1>(Works)</h1>
           </div>
           <div className="grid-full [grid-row:span_2]">
-            <p className="whitespace-nowrap">{summaryText}</p>
+            <p className="whitespace-nowrap">
+              {filterButtons.map((btn, i) => (
+                <span key={btn.key}>
+                  {i > 0 && " / "}
+                  <button
+                    type="button"
+                    onClick={() => setFilter(btn.key)}
+                    className={`cursor-pointer transition-opacity ${
+                      filter === btn.key ? "opacity-100" : "opacity-40 hover:opacity-70"
+                    }`}
+                  >
+                    {btn.label}
+                    {btn.count}
+                  </button>
+                </span>
+              ))}
+            </p>
           </div>
         </div>
 
@@ -88,7 +114,7 @@ export function WorksPageClient({ initialItems }: Props) {
           </div>
 
           <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
-            {initialItems.map((work, index) => {
+            {filteredItems.map((work, index) => {
               const rowProps = rowPointerProps(work._id);
               return (
               <div

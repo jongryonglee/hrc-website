@@ -1,6 +1,16 @@
 import { defineField, defineType } from "sanity";
 import { orderRankField } from "@sanity/orderable-document-list";
 import { PlayIcon } from "@sanity/icons";
+import { CreditsBulkInput } from "../../components/CreditsBulkInput";
+
+const hasCategory = ({ document }: { document?: Record<string, unknown> }) =>
+  !document?.category;
+
+const isMusicVideo = ({ document }: { document?: Record<string, unknown> }) =>
+  document?.category !== "music-video";
+
+const isSoundEffect = ({ document }: { document?: Record<string, unknown> }) =>
+  document?.category !== "sound-effect";
 
 export const workItem = defineType({
   name: "workItem",
@@ -58,12 +68,16 @@ export const workItem = defineType({
       },
       validation: (rule) => rule.required(),
     }),
+
+    // ── カテゴリ選択後に表示 ──
+
     defineField({
       name: "thumbnail",
       title: "Thumbnail",
       type: "image",
       options: { hotspot: true },
       validation: (rule) => rule.required(),
+      hidden: hasCategory,
     }),
     defineField({
       name: "video",
@@ -71,43 +85,7 @@ export const workItem = defineType({
       type: "mux.video",
       description:
         "Mux でホストする動画。アップロードすると自動的にストリーミング配信される。",
-    }),
-    defineField({
-      name: "videoUrl",
-      title: "Video URL",
-      type: "url",
-      description:
-        "Music Video のときは必須。Sound Effect のときは任意（YouTube など）。",
-      validation: (rule) =>
-        rule.custom((value, context) => {
-          const category = (context.document as { category?: string } | undefined)
-            ?.category;
-          const empty = value == null || value === "";
-          if (category === "sound-effect") {
-            if (empty) return true;
-          } else if (empty) {
-            return "Music Video では動画 URL を入力してください";
-          }
-          if (typeof value === "string" && value) {
-            try {
-              const u = new URL(value);
-              if (u.protocol !== "http:" && u.protocol !== "https:") {
-                return "http または https の URL を入力してください";
-              }
-            } catch {
-              return "有効な URL を入力してください";
-            }
-          }
-          return true;
-        }),
-    }),
-    defineField({
-      name: "credits",
-      title: "Credits",
-      type: "array",
-      description:
-        "クレジット行を任意件数で追加。左がラベル（役職など）、右が名前。",
-      of: [{ type: "workCreditLine" }],
+      hidden: isMusicVideo,
     }),
     defineField({
       name: "soundFile",
@@ -118,7 +96,41 @@ export const workItem = defineType({
       options: {
         accept: "audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac",
       },
-      hidden: ({ document }) => document?.category !== "sound-effect",
+      hidden: isSoundEffect,
+    }),
+    defineField({
+      name: "videoUrl",
+      title: "YouTube URL",
+      type: "url",
+      description: "YouTube の動画 URL（任意）",
+      hidden: hasCategory,
+      validation: (rule) => rule.uri({ scheme: ["http", "https"] }),
+    }),
+    defineField({
+      name: "soundCloudUrl",
+      title: "SoundCloud URL",
+      type: "url",
+      description: "SoundCloud の URL（任意）",
+      hidden: hasCategory,
+      validation: (rule) => rule.uri({ scheme: ["http", "https"] }),
+    }),
+    defineField({
+      name: "instagramUrl",
+      title: "Instagram URL",
+      type: "url",
+      description: "Instagram の URL（任意）",
+      hidden: hasCategory,
+      validation: (rule) => rule.uri({ scheme: ["http", "https"] }),
+    }),
+    defineField({
+      name: "credits",
+      title: "Credits",
+      type: "array",
+      description:
+        "通常入力 or 一括入力（「ラベル / 名前」形式で1行1クレジット）",
+      of: [{ type: "workCreditLine" }],
+      hidden: hasCategory,
+      components: { input: CreditsBulkInput },
     }),
   ],
 });
