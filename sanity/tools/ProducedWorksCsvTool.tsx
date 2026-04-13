@@ -211,7 +211,27 @@ export function ProducedWorksCsvTool() {
         CSVのヘッダー: title, artist, role, album, label（id または _id は任意）
       </p>
 
-      <input type="file" accept=".csv,text/csv" onChange={handleFileChange} />
+      <label
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "10px 16px",
+          border: "1px solid #d1d5db",
+          borderRadius: 6,
+          cursor: "pointer",
+          fontSize: 14,
+          marginRight: 16,
+        }}
+      >
+        <span>ファイルを選択</span>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleFileChange}
+          style={{ display: "none" }}
+        />
+      </label>
 
       {fileName ? (
         <p style={{ marginTop: 8 }}>

@@ -285,3 +285,43 @@ h1 {
   /* 砂嵐フェードは `--work-sandstorm-fade-ms` を尊重（定数調整が効くように transition は殺さない） */
 }
 
+/* ── Graphic Design lightbox ── */
+@keyframes gd-backdrop-in {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(6px); }
+}
+@keyframes gd-backdrop-out {
+  from { opacity: 1; backdrop-filter: blur(6px); }
+  to   { opacity: 0; backdrop-filter: blur(0); }
+}
+@keyframes gd-img-in {
+  from { opacity: 0; transform: scale(0.88); filter: blur(6px); }
+  to   { opacity: 1; transform: scale(1);    filter: blur(0); }
+}
+@keyframes gd-img-out {
+  from { opacity: 1; transform: scale(1);    filter: blur(0); }
+  to   { opacity: 0; transform: scale(0.92); filter: blur(4px); }
+}
+
+.gd-lightbox-backdrop-enter {
+  animation: gd-backdrop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gd-lightbox-backdrop-exit {
+  animation: gd-backdrop-out 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.gd-lightbox-img-enter {
+  animation: gd-img-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+}
+.gd-lightbox-img-exit {
+  animation: gd-img-out 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gd-lightbox-backdrop-enter,
+  .gd-lightbox-backdrop-exit,
+  .gd-lightbox-img-enter,
+  .gd-lightbox-img-exit {
+    animation: none !important;
+  }
+}
+

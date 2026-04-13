@@ -1,44 +1,137 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
+
+type GdCategory = "event-flier" | "cover-art" | "gino-goods";
+type FilterCategory = "all" | GdCategory;
 
 type GridItem = {
   image: string;
   title: string;
   alt: string;
+  category: GdCategory;
 };
 
 type GraphicDesignGridProps = {
   items: GridItem[];
 };
 
+const EXIT_DURATION_MS = 280;
+
 export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
   const [selectedItem, setSelectedItem] = useState<GridItem | null>(null);
+  const [phase, setPhase] = useState<"enter" | "exit" | null>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [filter, setFilter] = useState<FilterCategory>("all");
+
+  const counts = items.reduce(
+    (acc, item) => {
+      acc.all += 1;
+      if (item.category === "event-flier") acc.eventFlier += 1;
+      if (item.category === "cover-art") acc.coverArt += 1;
+      if (item.category === "gino-goods") acc.ginoGoods += 1;
+      return acc;
+    },
+    { all: 0, eventFlier: 0, coverArt: 0, ginoGoods: 0 },
+  );
+
+  const filterButtons: { key: FilterCategory; label: string; count: number }[] = [
+    { key: "all", label: "all", count: counts.all },
+    { key: "event-flier", label: "event flier", count: counts.eventFlier },
+    { key: "cover-art", label: "cover art", count: counts.coverArt },
+    { key: "gino-goods", label: "gino goods", count: counts.ginoGoods },
+  ];
+
+  const filteredItems =
+    filter === "all"
+      ? items
+      : items.filter((item) => item.category === filter);
+
+  const open = useCallback((item: GridItem) => {
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+      exitTimerRef.current = null;
+    }
+    setSelectedItem(item);
+    setPhase("enter");
+  }, []);
+
+  const close = useCallback(() => {
+    if (phase === "exit") return;
+    setPhase("exit");
+    exitTimerRef.current = setTimeout(() => {
+      exitTimerRef.current = null;
+      setSelectedItem(null);
+      setPhase(null);
+    }, EXIT_DURATION_MS);
+  }, [phase]);
+
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedItem) return;
     document.body.style.overflow = "hidden";
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelectedItem(null);
+      if (e.key === "Escape") close();
     };
     window.addEventListener("keydown", handleKey);
     return () => {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKey);
     };
-  }, [selectedItem]);
+  }, [selectedItem, close]);
+
+  const backdropCls =
+    phase === "enter"
+      ? "gd-lightbox-backdrop-enter"
+      : phase === "exit"
+        ? "gd-lightbox-backdrop-exit"
+        : "";
+
+  const imgCls =
+    phase === "enter"
+      ? "gd-lightbox-img-enter"
+      : phase === "exit"
+        ? "gd-lightbox-img-exit"
+        : "";
 
   return (
     <>
+      <div className="layout-grid">
+        <div className="grid-full [grid-row:span_2]">
+          <p className="whitespace-nowrap">
+            {filterButtons.map((btn, i) => (
+              <span key={btn.key}>
+                {i > 0 && " / "}
+                <button
+                  type="button"
+                  onClick={() => setFilter(btn.key)}
+                  className={`cursor-pointer transition-opacity ${
+                    filter === btn.key ? "opacity-100" : "opacity-40 hover:opacity-70"
+                  }`}
+                >
+                  {btn.label}
+                  {btn.count}
+                </button>
+              </span>
+            ))}
+          </p>
+        </div>
+      </div>
+
       <section className="mb-[0px]">
         <div className="grid grid-cols-2 gap-x-[17px] md:grid-cols-5 md:gap-x-[17px] [grid-auto-rows:17px] h-full">
-          {items.map((item, i) => (
+          {filteredItems.map((item, i) => (
             <div
               key={i}
               className="relative [grid-row:span_12] md:[grid-row:span_16] flex items-center justify-center cursor-pointer"
-              onClick={() => setSelectedItem(item)}
+              onClick={() => open(item)}
             >
               <div className="absolute left-0 top-0 text-white whitespace-pre-line">
                 {item.title}
@@ -60,18 +153,16 @@ export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
 
       {selectedItem && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setSelectedItem(null)}
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 ${backdropCls}`}
+          onClick={close}
         >
-          {/* 画像 + closeボタンのコンテナ */}
           <div
-            className="relative"
+            className={`relative ${imgCls}`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* closeボタン：画像右上に配置 */}
             <button
               className="absolute -top-6 right-0 z-10"
-              onClick={() => setSelectedItem(null)}
+              onClick={close}
               aria-label="閉じる"
             >
               <Image
@@ -81,7 +172,6 @@ export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
                 height={17}
               />
             </button>
-            {/* 拡大画像（元サイズの3.5倍） */}
             <Image
               src={selectedItem.image}
               alt={selectedItem.alt}
