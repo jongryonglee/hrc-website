@@ -5,7 +5,7 @@ import { Footer } from "./components/Footer";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col px-[10px] py-[15px] md:p-[17px]">
       <Header />
       <main className="flex-1">
         <section className="mt-[17px]">

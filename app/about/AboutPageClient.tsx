@@ -16,7 +16,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   return (
-    <div className="flex min-h-full flex-col flex-1">
+    <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
       <section className="text-[14px] leading-[1.1] md:text-[15px]">
@@ -78,7 +78,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                         href="https://www.google.com/maps/search/?api=1&query=201+Juno+Hanegi+Koen,6-9-17+Matsubara,+Setagaya-ku,+Tokyo+156-0043"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 w-fit"
+                        className="link_co inline-flex items-center gap-1 w-fit"
                       >
                         <span className="whitespace-nowrap">
                           <ScrambleText
@@ -88,7 +88,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                             durationMs={400}
                           />
                         </span>
-                        <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        <Image src="/icon-map.svg" alt="" width={9} height={9} className="link_co-icon" />
                       </a>
                     </p>
                   </div>
@@ -96,29 +96,29 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                   <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                     <p className="w-[80px] shrink-0">Contact</p>
                     <div className="flex flex-1 flex-col items-start">
-                      <Link href="mailto:contact@hrc.com" className="flex items-center gap-1 w-fit">
+                      <Link href="mailto:contact@hrc.com" className="link_co flex items-center gap-1 w-fit">
                         <ScrambleText
                           text="mail"
                           mode="lap"
                           speedMs={40}
                           durationMs={400}
                         />
-                        <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        <Image src="/icon-map.svg" alt="" width={9} height={9} className="link_co-icon" />
                       </Link>
                       <a
                         href="https://twitter.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 w-fit"
+                        className="link_co flex items-center gap-1 w-fit"
                       >
                         <ScrambleText text="X" mode="lap" speedMs={40} durationMs={400} />
-                        <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        <Image src="/icon-map.svg" alt="" width={9} height={9} className="link_co-icon" />
                       </a>
                       <a
                         href="https://www.instagram.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 w-fit"
+                        className="link_co flex items-center gap-1 w-fit"
                       >
                         <ScrambleText
                           text="instagram"
@@ -126,7 +126,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                           speedMs={40}
                           durationMs={400}
                         />
-                        <Image src="/icon-map.svg" alt="" width={9} height={9} />
+                        <Image src="/icon-map.svg" alt="" width={9} height={9} className="link_co-icon" />
                       </a>
                     </div>
                   </div>
@@ -200,12 +200,6 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="layout-grid">
-          <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
         </div>
       </section>
 

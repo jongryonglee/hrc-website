@@ -1,8 +1,8 @@
-import Studio from "../Studio";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-static";
-export { metadata, viewport } from "next-sanity/studio";
+const STUDIO_URL =
+  process.env.NEXT_PUBLIC_SANITY_STUDIO_URL || "https://hrcwebsite.sanity.studio";
 
 export default function StudioPage() {
-  return <Studio />;
+  redirect(STUDIO_URL);
 }

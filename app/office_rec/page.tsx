@@ -33,11 +33,11 @@ export default async function OfficeRecPage() {
         ];
 
   return (
-    <div className="flex min-h-full flex-col flex-1">
+    <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
       {/* Title & summary */}
-      <section>
+      <section className="mt-[30px] md:mt-[0px]">
         <div className="layout-grid">
           {/* (Office Rec): 上から2グリッド分 */}
           <div className="grid-full [grid-row:span_6] md:[grid-row:span_5]">
@@ -47,11 +47,6 @@ export default async function OfficeRecPage() {
       </section>
 
       <OfficeRecGrid items={officeRecItems} />
-      <section>
-        <div className="layout-grid">
-          <div className="grid-full [grid-row:span_5] md:[grid-row:span_10]" />
-        </div>
-      </section>
       <div className="mt-auto">
         <Footer />
       </div>

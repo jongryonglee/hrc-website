@@ -6,7 +6,7 @@ import { bulkDeletePlugin } from "./sanity/plugins/bulkDeletePlugin";
 import { producedWorksCsvImportPlugin } from "./sanity/plugins/producedWorksCsvImportPlugin";
 import { schemaTypes } from "./sanity/schemaTypes";
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "";
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "h07klblt";
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
 
 export default defineConfig({
@@ -14,7 +14,6 @@ export default defineConfig({
   title: "HRC Website",
   projectId,
   dataset,
-  basePath: "/studio",
   plugins: [
     deskTool({
       structure: (S, context) => {

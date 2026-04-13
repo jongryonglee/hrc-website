@@ -174,7 +174,7 @@ function GridCopy({
   return (
     <div
       ref={innerRef}
-      className="shrink-0 [--cell-w:268px]"
+      className="shrink-0 [--cell-w:268px] min-[1700px]:[--cell-w:300px]"
       style={{
         display: "grid",
         gridTemplateColumns: `repeat(6, ${CELL_W_CSS_VAR})`,
