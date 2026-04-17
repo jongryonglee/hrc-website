@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent } from "react";
+import { useCanHover } from "@/app/hooks/useCanHover";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { GridMuxHoverMedia } from "./GridMuxHoverMedia";
 
@@ -40,10 +41,13 @@ export const ContentGrid = ({
   dimOtherItemsOnHover = false,
 }: ContentGridProps) => {
   const router = useRouter();
+  const canHover = useCanHover();
+  const useMuxHover = muxHoverCrt && canHover;
+  const useDimSiblings = dimOtherItemsOnHover && canHover;
 
   const gridClassName = [
     "grid grid-cols-2 gap-[17px] md:grid-cols-5 md:gap-[17px]",
-    dimOtherItemsOnHover ? "content-grid--dim-siblings" : "",
+    useDimSiblings ? "content-grid--dim-siblings" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -67,7 +71,7 @@ export const ContentGrid = ({
             }
           };
 
-          const muxCell = !!(muxHoverCrt && item.muxPlaybackId);
+          const muxCell = !!(useMuxHover && item.muxPlaybackId);
 
           const inner = (
             <>
@@ -124,7 +128,7 @@ export const ContentGrid = ({
             <div
               key={item._key}
               className={
-                dimOtherItemsOnHover
+                useDimSiblings
                   ? "content-grid-cell flex w-full flex-col"
                   : "flex w-full flex-col"
               }
@@ -134,9 +138,11 @@ export const ContentGrid = ({
                   role="link"
                   tabIndex={0}
                   className={`block cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-[2px] ${
-                    dimOtherItemsOnHover
+                    useDimSiblings
                       ? ""
-                      : "transition-opacity hover:opacity-80"
+                      : canHover
+                        ? "transition-opacity hover:opacity-80"
+                        : ""
                   }`}
                   onClick={go}
                   onKeyDown={onKeyDown}

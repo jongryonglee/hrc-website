@@ -1,7 +1,9 @@
 "use client";
 
 import { Fragment } from "react";
+import Image from "next/image";
 import type { WorkCreditLine, WorkDetailItem } from "@/app/lib/cmsTypes";
+import { useCanHover } from "@/app/hooks/useCanHover";
 import { DetailLayout } from "../../components/DetailLayout";
 
 const FALLBACK_CREDITS: WorkCreditLine[] = [
@@ -35,6 +37,7 @@ type Props = {
 };
 
 export function WorkDetailClient({ data }: Props) {
+  const canHover = useCanHover();
   const creditLines =
     data?.credits && data.credits.length > 0 ? data.credits : FALLBACK_CREDITS;
 
@@ -45,6 +48,27 @@ export function WorkDetailClient({ data }: Props) {
       storageKeys={STORAGE_KEYS}
       enableBackspaceNav
       showCenterScrollHint
+      requireHoverForSequentialGestures
+      renderRightExtra={({ sequentialNav, tryNavigateNext }) =>
+        sequentialNav && !canHover ? (
+          <button
+            type="button"
+            onClick={tryNavigateNext}
+            className="flex items-center gap-2 text-left text-[15px] leading-[1.1] cursor-pointer"
+            aria-label="次の作品へ"
+          >
+            <Image
+              src="/arrow-down.svg"
+              alt=""
+              width={11}
+              height={11}
+              className="shrink-0"
+              aria-hidden
+            />
+            next
+          </button>
+        ) : null
+      }
       links={[
         { label: "YouTube", url: data?.videoUrl },
         { label: "Sound Cloud", url: data?.soundCloudUrl },
