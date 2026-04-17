@@ -112,12 +112,16 @@ export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
                 <button
                   type="button"
                   onClick={() => setFilter(btn.key)}
-                  className={`cursor-pointer transition-opacity ${
-                    filter === btn.key ? "opacity-100" : "opacity-40 hover:opacity-70"
-                  }`}
+                  className="cursor-pointer"
                 >
-                  {btn.label}
-                  {btn.count}
+                  <span
+                    className={filter === btn.key ? "" : "line-through"}
+                  >
+                    {btn.label}
+                  </span>
+                  <sup className="ms-[2px] text-[0.65em] leading-none">
+                    {btn.count}
+                  </sup>
                 </button>
               </span>
             ))}

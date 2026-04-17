@@ -63,10 +63,28 @@ type CellEntry = CellRefs & {
 type RegisterFn = (refs: CellRefs) => () => void;
 
 const RegisterCtx = createContext<RegisterFn | null>(null);
-const ReplayCtx = createContext<(() => void) | null>(null);
 
+export type CrtFlashApi = {
+  replay: () => Promise<void>;
+  resetHard: () => void;
+};
+
+const FlashApiCtx = createContext<CrtFlashApi | null>(null);
+
+export function useCrtFlashApi(): CrtFlashApi {
+  const v = useContext(FlashApiCtx);
+  if (!v) {
+    throw new Error("useCrtFlashApi must be used within CrtFlashProvider");
+  }
+  return v;
+}
+
+/** @deprecated Prefer useCrtFlashApi().replay — kept for compatibility */
 export function useCrtFlashReplay() {
-  return useContext(ReplayCtx);
+  const v = useContext(FlashApiCtx);
+  return () => {
+    void v?.replay();
+  };
 }
 
 function launchCellAnimations(entry: CellEntry) {
@@ -158,27 +176,45 @@ function launchCellAnimations(entry: CellEntry) {
   const anims = [a1, a2, a3, a4, a5];
   entry.animations = anims;
 
-  Promise.all(anims.map((a) => a.finished))
-    .then(() => {
-      content.style.removeProperty("clip-path");
-      for (const a of anims) a.cancel();
-      entry.animations = [];
-    })
-    .catch(() => {});
+  return Promise.all(anims.map((a) => a.finished.catch(() => {}))).then(() => {
+    content.style.removeProperty("clip-path");
+    for (const a of anims) a.cancel();
+    entry.animations = [];
+  });
+}
+
+function resetCellHard(entry: CellEntry) {
+  for (const a of entry.animations) a.cancel();
+  entry.animations = [];
+  const { content, spark, line } = entry;
+  content.style.clipPath = "inset(50% 0%)";
+  spark.style.opacity = "0";
+  spark.style.transform = "translate(-50%, -50%) scale(0.02)";
+  line.style.opacity = "0";
+  line.style.transform = "translateY(-50%) scaleX(0.015)";
 }
 
 export function CrtFlashProvider({
   children,
+  autoPlayOnMount = true,
+  /** replay 時のアニメ開始遅延の上限（ms）。省略時は STAGGER_MAX_MS（一覧ホバーは 0 推奨） */
+  replayStaggerMaxMs = STAGGER_MAX_MS,
 }: {
   children: React.ReactNode;
+  /** false のとき、初回マウントでは CRT を再生せず replay() まで待つ */
+  autoPlayOnMount?: boolean;
+  replayStaggerMaxMs?: number;
 }) {
   const cellsRef = useRef(new Set<CellEntry>());
   const [replayToken, setReplayToken] = useState(0);
+  const pendingReplayResolveRef = useRef<(() => void) | null>(null);
+
+  const staggerCap = Math.max(0, replayStaggerMaxMs);
 
   const register = useCallback((refs: CellRefs) => {
     const entry: CellEntry = {
       ...refs,
-      staggerMs: Math.floor(Math.random() * STAGGER_MAX_MS),
+      staggerMs: Math.floor(Math.random() * staggerCap),
       animations: [],
     };
     cellsRef.current.add(entry);
@@ -186,34 +222,68 @@ export function CrtFlashProvider({
       for (const a of entry.animations) a.cancel();
       cellsRef.current.delete(entry);
     };
+  }, [staggerCap]);
+
+  const flushReplayWaiters = useCallback(() => {
+    pendingReplayResolveRef.current?.();
+    pendingReplayResolveRef.current = null;
   }, []);
+
+  const resetHard = useCallback(() => {
+    for (const c of cellsRef.current) {
+      resetCellHard(c);
+    }
+    flushReplayWaiters();
+  }, [flushReplayWaiters]);
 
   const replay = useCallback(() => {
     for (const c of cellsRef.current) {
       // eslint-disable-next-line react-hooks/immutability -- replay で登録済みセルのみ stagger を振り直す
-      c.staggerMs = Math.floor(Math.random() * STAGGER_MAX_MS);
+      c.staggerMs = Math.floor(Math.random() * staggerCap);
     }
-    setReplayToken((n) => n + 1);
-  }, []);
+    return new Promise<void>((resolve) => {
+      pendingReplayResolveRef.current?.();
+      pendingReplayResolveRef.current = resolve;
+      setReplayToken((n) => n + 1);
+    });
+  }, [staggerCap]);
 
   useEffect(() => {
+    return () => {
+      flushReplayWaiters();
+    };
+  }, [flushReplayWaiters]);
+
+  useEffect(() => {
+    if (!autoPlayOnMount && replayToken === 0) return;
+
     const id = requestAnimationFrame(() => {
-      for (const c of cellsRef.current) {
-        launchCellAnimations(c);
+      const cells = [...cellsRef.current];
+      if (cells.length === 0) {
+        flushReplayWaiters();
+        return;
       }
+      void Promise.all(cells.map(launchCellAnimations)).then(
+        flushReplayWaiters,
+      );
     });
-    return () => cancelAnimationFrame(id);
-  }, [replayToken]);
+    return () => {
+      cancelAnimationFrame(id);
+    };
+  }, [replayToken, autoPlayOnMount, flushReplayWaiters]);
 
   const registerVal = useMemo(() => register, [register]);
-  const replayVal = useMemo(() => replay, [replay]);
+  const apiVal = useMemo(
+    () => ({ replay, resetHard }),
+    [replay, resetHard],
+  );
 
   return (
-    <ReplayCtx.Provider value={replayVal}>
+    <FlashApiCtx.Provider value={apiVal}>
       <RegisterCtx.Provider value={registerVal}>
         {children}
       </RegisterCtx.Provider>
-    </ReplayCtx.Provider>
+    </FlashApiCtx.Provider>
   );
 }
 

@@ -53,6 +53,7 @@ export type OfficeRecListItem = {
   _id: string;
   title: string;
   artist: string;
+  muxPlaybackId?: string | null;
   thumbnailUrl?: string | null;
 };
 
@@ -80,9 +81,9 @@ export type GraphicDesignListItem = {
 export type ProducedWorkItem = {
   _id: string;
   title: string;
+  label: string;
   artist: string;
   role: string;
-  album: string;
-  label: string;
+  date?: string | null;
   link?: string | null;
 };
