@@ -5,7 +5,7 @@ import { useClient } from "sanity";
 
 type CsvRow = Record<string, string>;
 
-const REQUIRED_COLUMNS = ["title", "artist", "role", "album", "label"] as const;
+const REQUIRED_COLUMNS = ["title", "artist", "role", "album", "label", "link"] as const;
 const OPTIONAL_COLUMNS = ["id", "_id"] as const;
 
 const HEADER_ALIASES: Record<string, string> = {
@@ -17,6 +17,8 @@ const HEADER_ALIASES: Record<string, string> = {
   album: "album",
   "アルバム名": "album",
   label: "label",
+  link: "link",
+  "リンク": "link",
   id: "id",
   _id: "_id",
 };
@@ -186,6 +188,7 @@ export function ProducedWorksCsvTool() {
             role: row.role,
             album: row.album,
             label: row.label,
+            link: row.link,
           });
         });
 
@@ -208,7 +211,7 @@ export function ProducedWorksCsvTool() {
         Produced Works CSV Import
       </h2>
       <p style={{ marginBottom: 16 }}>
-        CSVのヘッダー: title, artist, role, album, label（id または _id は任意）
+        CSVのヘッダー: title, artist, role, album, label, link（id または _id は任意）
       </p>
 
       <label

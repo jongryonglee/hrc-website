@@ -20,7 +20,6 @@ export function OfficeRecDetailClient({ data }: Props) {
       data={data}
       basePath="/office_rec"
       storageKeys={STORAGE_KEYS}
-      sandstormEnterHoldMs={380}
       links={[
         { label: "YouTube", url: data?.videoUrl },
         { label: "Sound Cloud", url: null },

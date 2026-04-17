@@ -12,6 +12,10 @@ type Props = {
   initialProducedWorks: ProducedWorkItem[];
 };
 
+function isExternalLink(link: string) {
+  return /^(https?:)?\/\//i.test(link);
+}
+
 export function AboutPageClient({ initialProducedWorks }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -145,61 +149,87 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
         </div>
 
         <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-nowrap">
-          {initialProducedWorks.map((work) => (
-            <div
-              key={work._id}
-              className="group/row contents"
-              onMouseEnter={() => setHoveredId(work._id)}
-              onMouseLeave={() => setHoveredId(null)}
-            >
-              <div className="col-span-6 md:col-span-4 [grid-row:span_1] text-left">
-                <ScrambleText
-                  text={work.title}
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                  active={hoveredId === work._id}
-                />
-              </div>
-              <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-right">
-                <ScrambleText
-                  text={work.artist}
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                  active={hoveredId === work._id}
-                />
-              </div>
-              <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-left">
-                <ScrambleText
-                  text={work.role}
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                  active={hoveredId === work._id}
-                />
-              </div>
-              <div className="col-span-3 md:col-span-4 [grid-row:span_1] text-right">
-                <ScrambleText
-                  text={work.album}
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                  active={hoveredId === work._id}
-                />
-              </div>
-              <div className="col-span-3 md:col-span-4 [grid-row:span_1] text-right relative overflow-visible">
-                <ScrambleText
-                  text={work.label}
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                  active={hoveredId === work._id}
-                />
-                <div className="pointer-events-none absolute left-1/2 bottom-0 h-px w-[200vw] -translate-x-1/2 bg-white/0 transition-colors group-hover/row:bg-white/70" />
-              </div>
-            </div>
-          ))}
+          {initialProducedWorks.map((work) => {
+            const isActive = hoveredId === work._id;
+            const rowContent = (
+              <>
+                <div className="col-span-6 md:col-span-4 [grid-row:span_1] text-left">
+                  <ScrambleText
+                    text={work.title}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={isActive}
+                  />
+                </div>
+                <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-right">
+                  <ScrambleText
+                    text={work.artist}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={isActive}
+                  />
+                </div>
+                <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-left">
+                  <ScrambleText
+                    text={work.role}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={isActive}
+                  />
+                </div>
+                <div className="col-span-3 md:col-span-4 [grid-row:span_1] text-right">
+                  <ScrambleText
+                    text={work.album}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={isActive}
+                  />
+                </div>
+                <div className="col-span-3 md:col-span-4 [grid-row:span_1] text-right relative overflow-visible">
+                  <ScrambleText
+                    text={work.label}
+                    mode="lap"
+                    speedMs={40}
+                    durationMs={400}
+                    active={isActive}
+                  />
+                  <div className="pointer-events-none absolute left-1/2 bottom-0 h-px w-[200vw] -translate-x-1/2 bg-white/0 transition-colors group-hover/row:bg-white/70" />
+                </div>
+              </>
+            );
+
+            const commonProps = {
+              className: `group/row contents${work.link ? " cursor-pointer" : ""}`,
+              onMouseEnter: () => setHoveredId(work._id),
+              onMouseLeave: () => setHoveredId(null),
+              onFocus: () => setHoveredId(work._id),
+              onBlur: () => setHoveredId(null),
+            };
+
+            if (!work.link) {
+              return (
+                <div key={work._id} {...commonProps}>
+                  {rowContent}
+                </div>
+              );
+            }
+
+            return (
+              <a
+                key={work._id}
+                href={work.link}
+                {...commonProps}
+                target={isExternalLink(work.link) ? "_blank" : undefined}
+                rel={isExternalLink(work.link) ? "noopener noreferrer" : undefined}
+              >
+                {rowContent}
+              </a>
+            );
+          })}
         </div>
       </section>
 

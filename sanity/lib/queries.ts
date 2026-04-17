@@ -110,6 +110,7 @@ export const PRODUCED_WORK_ITEMS_QUERY = defineQuery(/* groq */ `
       artist,
       role,
       album,
-      label
+      label,
+      link
     }
 `);

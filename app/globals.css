@@ -224,19 +224,6 @@ h1 {
   }
 }
 
-@keyframes work-detail-exit-up {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-1rem);
-    filter: blur(3px);
-  }
-}
-
 .work-detail-enter-img {
   animation: work-detail-enter-from-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -247,10 +234,6 @@ h1 {
 
 .work-detail-enter-credits {
   animation: work-detail-enter-from-bottom 0.48s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
-}
-
-.work-detail-exit {
-  animation: work-detail-exit-up 0.42s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* Works / Office Rec 詳細：項目間遷移の砂嵐ビデオ（マスク内・画像の上） */
@@ -274,8 +257,7 @@ h1 {
 @media (prefers-reduced-motion: reduce) {
   .work-detail-enter-img,
   .work-detail-enter-text,
-  .work-detail-enter-credits,
-  .work-detail-exit {
+  .work-detail-enter-credits {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;

@@ -18,8 +18,8 @@ import { ScrambleText } from "./ScrambleText";
 import { SoundToggle } from "./SoundToggle";
 
 const SANDSTORM_SRC = "/videos/transition_effect03.mp4";
+const SANDSTORM_ENTER_HOLD_MS = 200;
 const NAV_COOLDOWN_MS = 1400;
-const EXIT_MS = 420;
 const WHEEL_NEXT_ON_SCROLL_UP = false;
 
 export type DetailLayoutData = {
@@ -48,7 +48,6 @@ export type DetailLayoutProps = {
   data: DetailLayoutData | null;
   basePath: string;
   storageKeys: StorageKeys;
-  sandstormEnterHoldMs?: number;
   enableBackspaceNav?: boolean;
 
   renderInfo: (textAnim: string) => ReactNode;
@@ -73,7 +72,6 @@ export function DetailLayout({
   data,
   basePath,
   storageKeys,
-  sandstormEnterHoldMs = 600,
   enableBackspaceNav = false,
   renderInfo,
   links,
@@ -83,15 +81,11 @@ export function DetailLayout({
   showCenterScrollHint = false,
 }: DetailLayoutProps) {
   const router = useRouter();
-  const [exiting, setExiting] = useState(false);
   const [enterActive, setEnterActive] = useState(false);
-  const [sandstormExit, setSandstormExit] = useState(false);
   const [sandstormEnter, setSandstormEnter] = useState(false);
   const [useCrtEnter, setUseCrtEnter] = useState(false);
   const [muxSoundOn, setMuxSoundOn] = useState(false);
-  const exitingRef = useRef(false);
   const lockUntilRef = useRef(0);
-  const transitionPushTimerRef = useRef<number | null>(null);
   const sandstormVideoRef = useRef<HTMLVideoElement | null>(null);
   const muxVideoRef = useRef<HTMLVideoElement | null>(null);
   const thumbnailGestureRef = useRef<HTMLDivElement | null>(null);
@@ -103,13 +97,6 @@ export function DetailLayout({
     const v = muxVideoRef.current;
     if (v) v.muted = !on;
   }, []);
-
-  useEffect(() => {
-    exitingRef.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExiting(false);
-    setSandstormExit(false);
-  }, [data?._id]);
 
   useLayoutEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -183,16 +170,8 @@ export function DetailLayout({
 
   const transitionTo = useCallback(
     (targetId: string) => {
-      if (exitingRef.current) return;
       if (!targetId || targetId === data?._id) return;
       if (Date.now() < lockUntilRef.current) return;
-
-      if (transitionPushTimerRef.current) {
-        clearTimeout(transitionPushTimerRef.current);
-        transitionPushTimerRef.current = null;
-      }
-
-      exitingRef.current = true;
       const until = Date.now() + NAV_COOLDOWN_MS;
       lockUntilRef.current = until;
       try {
@@ -202,21 +181,9 @@ export function DetailLayout({
       } catch {
         /* ignore */
       }
-
-      const reduceMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      if ((data?.thumbnailUrl || hasMuxVideo) && !reduceMotion) {
-        setSandstormExit(true);
-      }
-      setExiting(true);
-
-      transitionPushTimerRef.current = window.setTimeout(() => {
-        transitionPushTimerRef.current = null;
-        router.push(`${basePath}/${targetId}`);
-      }, EXIT_MS);
+      router.push(`${basePath}/${targetId}`);
     },
-    [data?._id, data?.thumbnailUrl, hasMuxVideo, router, basePath, storageKeys],
+    [data?._id, router, basePath, storageKeys],
   );
 
   const tryNavigateNext = useCallback(() => {
@@ -240,16 +207,6 @@ export function DetailLayout({
   }, [tryNavigateNext, tryNavigatePrev]);
 
   useEffect(() => {
-    return () => {
-      if (transitionPushTimerRef.current) {
-        clearTimeout(transitionPushTimerRef.current);
-        transitionPushTimerRef.current = null;
-        exitingRef.current = false;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     if (!data?._id) return;
     const n = data.nextId;
     const p = data.prevId;
@@ -258,12 +215,12 @@ export function DetailLayout({
   }, [data?._id, data?.nextId, data?.prevId, router, basePath]);
 
   useEffect(() => {
-    if (!sandstormExit && !sandstormEnter) return;
+    if (!sandstormEnter) return;
     const v = sandstormVideoRef.current;
     if (!v) return;
     v.currentTime = 0;
     void v.play().catch(() => {});
-  }, [sandstormExit, sandstormEnter]);
+  }, [sandstormEnter]);
 
   useEffect(() => {
     if (!sandstormEnter) return;
@@ -275,9 +232,9 @@ export function DetailLayout({
       } catch {
         /* ignore */
       }
-    }, sandstormEnterHoldMs);
+    }, SANDSTORM_ENTER_HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [sandstormEnter, sandstormEnterHoldMs, storageKeys]);
+  }, [sandstormEnter, storageKeys]);
 
   useEffect(() => {
     if (!enableBackspaceNav) return;
@@ -364,8 +321,7 @@ export function DetailLayout({
   /* ── derived visual state ─────────────────────────────── */
 
   const showSandstorm =
-    (Boolean(data?.thumbnailUrl) || hasMuxVideo) &&
-    (sandstormExit || sandstormEnter);
+    (Boolean(data?.thumbnailUrl) || hasMuxVideo) && sandstormEnter;
 
   const sandstormVideoEl = showSandstorm ? (
     <video
@@ -425,26 +381,15 @@ export function DetailLayout({
     <div className="absolute inset-0 rounded-[16px] bg-white/10" />
   );
 
-  const imgAnim =
-    exiting && sandstormExit
-      ? ""
-      : exiting
-        ? "work-detail-exit"
-        : enterActive && !useCrtEnter
-          ? ""
-          : "";
+  const imgAnim = enterActive && !useCrtEnter ? "" : "";
 
-  const textAnim = exiting
-    ? "work-detail-exit"
-    : enterActive && sandstormEnter
+  const textAnim = enterActive && sandstormEnter
       ? "opacity-0"
       : enterActive
         ? "work-detail-enter-text"
         : "";
 
-  const creditsAnim = exiting
-    ? "work-detail-exit"
-    : enterActive && sandstormEnter
+  const creditsAnim = enterActive && sandstormEnter
       ? "opacity-0"
       : enterActive
         ? "work-detail-enter-credits"
