@@ -43,7 +43,6 @@ export function WorkDetailClient({ data }: Props) {
       data={data}
       basePath="/works"
       storageKeys={STORAGE_KEYS}
-      sandstormEnterHoldMs={600}
       enableBackspaceNav
       showCenterScrollHint
       links={[

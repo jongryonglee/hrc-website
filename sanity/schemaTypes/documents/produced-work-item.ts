@@ -39,5 +39,15 @@ export const producedWorkItem = defineType({
       type: "string",
       validation: (rule) => rule.required(),
     }),
+    defineField({
+      name: "link",
+      title: "Link",
+      type: "url",
+      validation: (rule) =>
+        rule.uri({
+          scheme: ["http", "https"],
+          allowRelative: true,
+        }),
+    }),
   ],
 });

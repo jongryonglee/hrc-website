@@ -12,6 +12,7 @@ const PLACEHOLDER_PRODUCED_WORKS: ProducedWorkItem[] = [
     role: "Mix, Mastering",
     album: "Unpaused",
     label: "ABCDEF Label",
+    link: "https://example.com",
   },
 ];
 

@@ -84,4 +84,5 @@ export type ProducedWorkItem = {
   role: string;
   album: string;
   label: string;
+  link?: string | null;
 };
