@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
@@ -11,6 +12,7 @@ import {
 import Image from "next/image";
 import MuxVideo from "@mux/mux-video-react";
 import { useRouter } from "next/navigation";
+import { useCanHover } from "@/app/hooks/useCanHover";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
 import { CrtFlashProvider, CrtRevealCell } from "./CrtFlash";
 import { Header } from "./Header";
@@ -66,6 +68,11 @@ export type DetailLayoutProps = {
 
   /** Show a centered scroll hint instead of Prev/Next buttons (Works style). */
   showCenterScrollHint?: boolean;
+  /**
+   * true のとき、サムネ上のホイール／スワイプによる前後遷移は (hover: hover) の端末のみ。
+   * タッチ主体では無効（一覧からの明示ボタンなどで遷移させる想定）。
+   */
+  requireHoverForSequentialGestures?: boolean;
 };
 
 export function DetailLayout({
@@ -79,8 +86,10 @@ export function DetailLayout({
   renderRightExtra,
   renderCredits,
   showCenterScrollHint = false,
+  requireHoverForSequentialGestures = false,
 }: DetailLayoutProps) {
   const router = useRouter();
+  const canHover = useCanHover();
   const [enterActive, setEnterActive] = useState(false);
   const [sandstormEnter, setSandstormEnter] = useState(false);
   const [useCrtEnter, setUseCrtEnter] = useState(false);
@@ -253,9 +262,12 @@ export function DetailLayout({
   }, [enableBackspaceNav, router]);
 
   const sequentialNav = Boolean(data?.nextId && data.nextId !== data._id);
+  const attachSequentialGestures =
+    sequentialNav &&
+    (!requireHoverForSequentialGestures || canHover);
 
   useEffect(() => {
-    if (!sequentialNav) return;
+    if (!attachSequentialGestures) return;
     const el = thumbnailGestureRef.current;
     if (!el) return;
 
@@ -273,10 +285,10 @@ export function DetailLayout({
 
     el.addEventListener("wheel", onWheel, { passive: true });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [sequentialNav]);
+  }, [attachSequentialGestures]);
 
   useEffect(() => {
-    if (!sequentialNav) return;
+    if (!attachSequentialGestures) return;
     const el = thumbnailGestureRef.current;
     if (!el) return;
 
@@ -316,7 +328,7 @@ export function DetailLayout({
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchend", onTouchEnd);
     };
-  }, [sequentialNav]);
+  }, [attachSequentialGestures]);
 
   /* ── derived visual state ─────────────────────────────── */
 
@@ -395,6 +407,12 @@ export function DetailLayout({
         ? "work-detail-enter-credits"
         : "";
 
+  const rightExtraContent = renderRightExtra?.({
+    sequentialNav,
+    tryNavigateNext,
+    tryNavigatePrev,
+  });
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden px-[10px] py-[15px] md:p-[17px]">
       <section
@@ -434,8 +452,15 @@ export function DetailLayout({
 
         {/* Bottom: links (left) + right column */}
         <div className="mt-[var(--grid-row)] md:mt-0 md:[grid-area:1/1] relative md:z-10 md:pointer-events-none md:flex md:flex-col md:justify-end md:mb-[17px]">
-          <div className="layout-grid pointer-events-auto md:pointer-events-none">
-            <div className="col-span-3 md:col-span-2 flex flex-col gap-1 md:pointer-events-auto justify-end">
+          <div
+            className="layout-grid pointer-events-auto md:pointer-events-none max-md:items-start md:items-end"
+            style={
+              {
+                "--detail-link-count": links.length,
+              } as CSSProperties
+            }
+          >
+            <div className="col-span-3 md:col-span-2 flex flex-col gap-1 max-md:row-start-1 max-md:self-start max-md:justify-start max-md:[grid-row-end:span_var(--detail-link-count)] md:pointer-events-auto md:justify-end">
               {links.map(({ label, url }) =>
                 url ? (
                   <a
@@ -482,16 +507,18 @@ export function DetailLayout({
                 ),
               )}
             </div>
-            <div className="col-start-8 col-span-2 md:col-start-17 md:col-span-2 self-end flex flex-col items-start gap-[34px] md:pointer-events-auto">
-              {renderRightExtra?.({
-                sequentialNav,
-                tryNavigateNext,
-                tryNavigatePrev,
-              })}
-              <SoundToggle
-                audioSrc={soundToggleAudioSrc}
-                onSoundChange={hasMuxVideo ? handleMuxSoundChange : undefined}
-              />
+            <div className="max-md:contents md:col-start-17 md:col-span-2 md:flex md:flex-col md:items-start md:gap-[34px] md:self-end md:pointer-events-auto">
+              {rightExtraContent ? (
+                <div className="max-md:col-start-8 max-md:col-span-2 max-md:row-start-1 max-md:self-start max-md:flex max-md:items-center">
+                  {rightExtraContent}
+                </div>
+              ) : null}
+              <div className="max-md:col-start-8 max-md:col-span-2 max-md:self-start max-md:[grid-row-start:var(--detail-link-count)] max-md:flex max-md:items-center">
+                <SoundToggle
+                  audioSrc={soundToggleAudioSrc}
+                  onSoundChange={hasMuxVideo ? handleMuxSoundChange : undefined}
+                />
+              </div>
             </div>
           </div>
         </div>

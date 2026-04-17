@@ -33,9 +33,18 @@ function splitArtistTokens(artist: string): string[] {
     .filter(Boolean);
 }
 
-/** role 欄の空白区切り（連続空白は1つにまとめる） */
+/**
+ * role 欄のトークン化。
+ * カンマがあるときはカンマ区切り（`chorus direction` のような複合を1項目にできる）。
+ * カンマが無いときのみ空白区切り（例: `Mix Mastering`）。
+ */
 function splitRoleTokens(role: string): string[] {
-  return role.trim().split(/\s+/).filter(Boolean);
+  const s = role.trim();
+  if (!s) return [];
+  if (s.includes(",")) {
+    return s.split(",").map((t) => t.trim()).filter(Boolean);
+  }
+  return s.split(/\s+/).filter(Boolean);
 }
 
 /** produced works タイトル／日付ソート（3 状態トグル） */
