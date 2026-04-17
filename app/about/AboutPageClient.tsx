@@ -25,12 +25,17 @@ function uniqSorted(values: string[]) {
   return [...new Set(values)].filter(Boolean).sort((a, b) => localeCmp(a, b));
 }
 
-/** アーティスト欄のカンマ区切りを1名ずつに分割 */
+/** アーティスト欄のカンマ区切りを1名ずつに分割（前後空白除去） */
 function splitArtistTokens(artist: string): string[] {
   return artist
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** role 欄の空白区切り（連続空白は1つにまとめる） */
+function splitRoleTokens(role: string): string[] {
+  return role.trim().split(/\s+/).filter(Boolean);
 }
 
 /** produced works タイトル／日付ソート（3 状態トグル） */
@@ -243,7 +248,10 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
     [initialProducedWorks],
   );
   const roleOptions = useMemo(
-    () => uniqSorted(initialProducedWorks.map((w) => w.role)),
+    () =>
+      uniqSorted(
+        initialProducedWorks.flatMap((w) => splitRoleTokens(w.role)),
+      ),
     [initialProducedWorks],
   );
 
@@ -273,7 +281,9 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
       ) {
         return false;
       }
-      if (roleFilter && w.role !== roleFilter) return false;
+      if (roleFilter && !splitRoleTokens(w.role).includes(roleFilter)) {
+        return false;
+      }
       if (labelFilter && w.label !== labelFilter) return false;
       return true;
     });

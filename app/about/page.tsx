@@ -10,7 +10,7 @@ const PLACEHOLDER_PRODUCED_WORKS: ProducedWorkItem[] = [
     title: "Unpaused / Vela",
     label: "ABCDEF Label",
     artist: "theeluu",
-    role: "Mix, Mastering",
+    role: "Mix Mastering",
     date: "2025/10/17",
     link: "https://example.com",
   },
