@@ -307,3 +307,19 @@ h1 {
   }
 }
 
+/* 一覧グリッド: いずれかのカードにホバー中は他カードを暗くする（:has で隙間上では全解除） */
+.content-grid--dim-siblings .content-grid-cell {
+  transition: opacity 0.2s ease;
+}
+
+.content-grid--dim-siblings:has(.content-grid-cell:hover)
+  .content-grid-cell:not(:hover) {
+  opacity: 0.32;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content-grid--dim-siblings .content-grid-cell {
+    transition: none;
+  }
+}
+

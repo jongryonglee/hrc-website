@@ -69,6 +69,7 @@ export const OFFICE_REC_ITEMS_QUERY = defineQuery(/* groq */ `
       _id,
       title,
       artist,
+      "muxPlaybackId": video.asset->playbackId,
       "thumbnailUrl": thumbnail.asset->url + ${IMG_SM}
     }
 `);
@@ -107,10 +108,10 @@ export const PRODUCED_WORK_ITEMS_QUERY = defineQuery(/* groq */ `
     | order(orderRank asc, _createdAt desc) {
       _id,
       title,
+      label,
       artist,
       role,
-      album,
-      label,
+      date,
       link
     }
 `);

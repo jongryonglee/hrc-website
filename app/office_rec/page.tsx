@@ -19,6 +19,7 @@ export default async function OfficeRecPage() {
     image: item.thumbnailUrl ?? fallbackThumb,
     title: `${item.title} / ${item.artist}`,
     href: `/office_rec/${item._id}`,
+    muxPlaybackId: item.muxPlaybackId,
   }));
 
   const officeRecItems: GridItem[] =

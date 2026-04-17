@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { KeyboardEvent } from "react";
 import { nextImageUnoptimized } from "@/sanity/lib/image";
+import { GridMuxHoverMedia } from "./GridMuxHoverMedia";
 
 export type GridItem = {
   _key: string;
@@ -12,6 +13,8 @@ export type GridItem = {
   subtitle?: string;
   /** 設定時はカード全体クリックで遷移（next/navigation） */
   href?: string;
+  /** Office Rec 一覧など: 設定時かつ muxHoverCrt でホバー CRT → Mux */
+  muxPlaybackId?: string | null;
 };
 
 type ContentGridProps = {
@@ -21,6 +24,10 @@ type ContentGridProps = {
   rounded?: boolean;
   /** カード遷移の直前に呼ばれるコールバック（CRT ストレージセットなどに使用） */
   onBeforeNavigate?: (href: string, key: string) => void;
+  /** true かつ各 item に muxPlaybackId があるセルでホバー CRT → Mux */
+  muxHoverCrt?: boolean;
+  /** true のとき、いずれかのカードにホバー中は他カードを暗くする */
+  dimOtherItemsOnHover?: boolean;
 };
 
 export const ContentGrid = ({
@@ -29,13 +36,22 @@ export const ContentGrid = ({
   imageClassName = "object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]",
   rounded = false,
   onBeforeNavigate,
+  muxHoverCrt = false,
+  dimOtherItemsOnHover = false,
 }: ContentGridProps) => {
   const router = useRouter();
+
+  const gridClassName = [
+    "grid grid-cols-2 gap-[17px] md:grid-cols-5 md:gap-[17px]",
+    dimOtherItemsOnHover ? "content-grid--dim-siblings" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <section className="mb-[0px]">
       {/* ここはGridのデザインの範囲外 */}
-      <div className="grid grid-cols-2 gap-[17px] md:grid-cols-5 md:gap-[17px]">
+      <div className={gridClassName}>
         {items.map((item, i) => {
           const go = () => {
             if (!item.href) return;
@@ -51,32 +67,46 @@ export const ContentGrid = ({
             }
           };
 
+          const muxCell = !!(muxHoverCrt && item.muxPlaybackId);
+
           const inner = (
             <>
               <div
                 className={`relative aspect-[268/204] w-full${rounded ? " rounded-[12px]" : ""}`}
               >
                 <div
-                  className={`absolute inset-0 overflow-hidden${rounded ? " rounded-[12px]" : ""}`}
+                  className={`absolute inset-0 z-0 overflow-hidden${rounded ? " rounded-[12px]" : ""}`}
                 >
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    className={imageClassName}
-                    sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
-                    priority={i < 4}
-                    unoptimized={nextImageUnoptimized(item.image)}
-                  />
+                  {muxCell ? (
+                    <GridMuxHoverMedia
+                      playbackId={item.muxPlaybackId!}
+                      posterSrc={item.image}
+                      posterAlt={item.title}
+                      imageClassName={imageClassName}
+                      rounded={rounded}
+                      priority={i < 4}
+                      showWorksMask={showMask}
+                    />
+                  ) : (
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      className={imageClassName}
+                      sizes="(min-width: 1024px) 18vw, (min-width: 768px) 25vw, 45vw"
+                      priority={i < 4}
+                      unoptimized={nextImageUnoptimized(item.image)}
+                    />
+                  )}
                 </div>
                 {/* 黒い縁のマスクを上に重ねる（コンテナより少し大きくして画像のはみ出しを隠す） */}
-                {showMask && (
+                {showMask && !muxCell && (
                   <Image
                     src="/works-mask.svg"
                     alt=""
                     aria-hidden="true"
                     fill
-                    className="pointer-events-none select-none"
+                    className="pointer-events-none select-none z-[1] object-cover object-center"
                     unoptimized
                   />
                 )}
@@ -91,12 +121,23 @@ export const ContentGrid = ({
           );
 
           return (
-            <div key={item._key} className="flex w-full flex-col">
+            <div
+              key={item._key}
+              className={
+                dimOtherItemsOnHover
+                  ? "content-grid-cell flex w-full flex-col"
+                  : "flex w-full flex-col"
+              }
+            >
               {item.href ? (
                 <div
                   role="link"
                   tabIndex={0}
-                  className="block cursor-pointer transition-opacity hover:opacity-80 outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-[2px]"
+                  className={`block cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-[2px] ${
+                    dimOtherItemsOnHover
+                      ? ""
+                      : "transition-opacity hover:opacity-80"
+                  }`}
                   onClick={go}
                   onKeyDown={onKeyDown}
                 >

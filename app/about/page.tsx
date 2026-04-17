@@ -8,10 +8,10 @@ const PLACEHOLDER_PRODUCED_WORKS: ProducedWorkItem[] = [
   {
     _id: "produced-work-placeholder-1",
     title: "Unpaused / Vela",
+    label: "ABCDEF Label",
     artist: "theeluu",
     role: "Mix, Mastering",
-    album: "Unpaused",
-    label: "ABCDEF Label",
+    date: "2025/10/17",
     link: "https://example.com",
   },
 ];

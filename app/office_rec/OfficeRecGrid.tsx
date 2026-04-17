@@ -17,7 +17,10 @@ export function OfficeRecGrid({ items }: { items: GridItem[] }) {
   return (
     <ContentGrid
       items={items}
+      showMask
       rounded
+      muxHoverCrt
+      dimOtherItemsOnHover
       onBeforeNavigate={handleBeforeNavigate}
     />
   );
