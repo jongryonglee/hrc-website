@@ -1,7 +1,14 @@
 "use client";
 
-import type { ChangeEvent } from "react";
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ProducedWorkItem } from "@/app/lib/cmsTypes";
@@ -102,7 +109,7 @@ const FILTER_TAB_HEADER_PX = 17;
 const FILTER_SELECT_ICON_GAP_PX = 6;
 
 const filterClearBtnClass =
-  "shrink-0 cursor-pointer bg-transparent p-0 text-[inherit] leading-[inherit] border-0 opacity-55 transition-opacity hover:opacity-100";
+  "shrink-0 cursor-pointer bg-transparent p-0 text-white leading-[inherit] border-0 transition-opacity hover:opacity-65";
 
 function FilterClearButton({
   active,
@@ -136,13 +143,16 @@ function ProducedWorksFilterSelect({
   options,
   ariaLabel,
   align,
+  clearSlot,
 }: {
   id: string;
   value: string;
-  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+  onChange: (nextValue: string) => void;
   options: string[];
   ariaLabel: string;
   align: ProducedWorksFilterAlign;
+  /** × 解除ボタン（`FilterClearButton` など）。トリガー直前に隙間なく並べる */
+  clearSlot?: ReactNode;
 }) {
   const wrapJustify =
     align === "start"
@@ -157,74 +167,113 @@ function ProducedWorksFilterSelect({
         ? "text-right"
         : "text-left md:text-right";
 
-  /**
-   * アイコンは select の外側に flex で並べる（select 内の padding-right に頼らない）。
-   * 幅は選択テキスト分だけに近づけ、最長 option 幅に引き伸ばされないようにする。
-   */
-  const displayLabel = value === "" ? "All" : value;
-  const chCount = Math.max(displayLabel.length + 1, 3);
-  const selectStyle = {
-    maxWidth: "100%" as const,
-    width: `min(100%, calc(${chCount}ch + 8px))`,
-    paddingRight: 2,
-    fieldSizing: "content" as const,
-  };
-
-  const selectRef = useRef<HTMLSelectElement>(null);
-  const openSelectMenu = useCallback(() => {
-    const el = selectRef.current;
-    if (!el) return;
-    el.focus();
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker();
-        return;
-      } catch {
-        /* 非対応・ユーザー操作外など */
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxId = `${id}-listbox`;
+  const optionIds = useMemo(
+    () => options.map((_, index) => `${id}-opt-${index}`),
+    [id, options],
+  );
+  useEffect(() => {
+    if (!isOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root) return;
+      if (!root.contains(event.target as Node)) {
+        setIsOpen(false);
       }
-    }
-    el.click();
-  }, []);
+    };
+    const onEsc = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    };
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onEsc);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onEsc);
+    };
+  }, [isOpen]);
+
+  const displayLabel = value === "" ? "All" : value;
+  const openMenu = useCallback(() => setIsOpen(true), []);
+  const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
 
   return (
-    <label
-      className={`inline-flex min-w-0 max-w-full shrink cursor-pointer touch-manipulation items-center ${wrapJustify}`}
-      style={{ gap: FILTER_SELECT_ICON_GAP_PX }}
-    >
-      <select
-        ref={selectRef}
-        id={id}
-        value={value}
-        onChange={onChange}
-        aria-label={ariaLabel}
-        className={`max-w-full min-w-0 cursor-pointer appearance-none border-0 bg-transparent py-0 pl-[4px] pr-[2px] font-normal text-[inherit] leading-[1.1] antialiased ${textAlign}`}
-        style={selectStyle}
-      >
-        <option value="">All</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-      <span
-        className="inline-flex shrink-0 cursor-pointer translate-y-[1px] select-none leading-none [-webkit-tap-highlight-color:transparent]"
-        aria-hidden
-        onPointerDown={(e) => {
-          e.preventDefault();
-          openSelectMenu();
-        }}
-      >
-        <Image
-          src="/icon/filtertab.svg"
-          alt=""
-          width={FILTER_TAB_HEADER_PX}
-          height={FILTER_TAB_HEADER_PX}
-          className="pointer-events-none shrink-0"
-          draggable={false}
-        />
-      </span>
-    </label>
+    <div ref={rootRef} className="relative w-full min-w-0 max-w-full touch-manipulation">
+      <div className={`flex max-w-full items-center ${wrapJustify}`}>
+        <div className="inline-flex max-w-full min-w-0 shrink-0 items-center gap-0">
+          {clearSlot}
+          <div
+            className="inline-flex max-w-full min-w-0 shrink-0 items-center"
+            style={{ gap: FILTER_SELECT_ICON_GAP_PX }}
+          >
+            <button
+              ref={triggerRef}
+              type="button"
+              id={id}
+              onClick={toggleMenu}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openMenu();
+                }
+              }}
+              aria-label={ariaLabel}
+              aria-haspopup="listbox"
+              aria-controls={listboxId}
+              aria-expanded={isOpen}
+              className={`inline-flex max-w-full min-w-0 w-fit cursor-pointer border-0 bg-transparent py-0 pl-[4px] pr-[2px] font-normal text-[inherit] leading-[1.1] antialiased ${textAlign}`}
+            >
+              <span className="min-w-0 truncate">{displayLabel}</span>
+            </button>
+            <span
+              className="inline-flex shrink-0 cursor-pointer translate-y-[1px] select-none leading-none [-webkit-tap-highlight-color:transparent]"
+              aria-hidden
+              onPointerDown={(e) => {
+                e.preventDefault();
+                setIsOpen((prev) => !prev);
+              }}
+            >
+              <Image
+                src="/icon/filtertab.svg"
+                alt=""
+                width={FILTER_TAB_HEADER_PX}
+                height={FILTER_TAB_HEADER_PX}
+                className="pointer-events-none shrink-0"
+                draggable={false}
+              />
+            </span>
+          </div>
+        </div>
+      </div>
+      {isOpen ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          aria-label={ariaLabel}
+          className={`absolute left-0 right-0 top-[calc(100%+8px)] z-30 w-full min-w-0 border border-white/20 bg-black py-[4px] text-white`}
+        >
+          {options.map((o, index) => (
+            <li key={o} role="option" aria-selected={value === o}>
+              <button
+                id={optionIds[index]}
+                type="button"
+                className={`w-full cursor-pointer bg-transparent px-[8px] py-[4px] ${textAlign} transition-colors hover:bg-white/10`}
+                onClick={() => {
+                  onChange(o);
+                  setIsOpen(false);
+                }}
+              >
+                {o}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }
 
@@ -468,60 +517,56 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
               <ProducedWorksSortTabPair sort={titleSort} />
             </button>
           </div>
-          <div className="col-span-7 md:col-span-3 [grid-row:span_1] min-w-0 text-right">
-            <div className="flex w-full min-w-0 items-center justify-end gap-x-[4px]">
-              <FilterClearButton
-                active={Boolean(labelFilter)}
-                onClear={() => setLabelFilter("")}
-                ariaLabel="レーベルの絞り込みを解除"
-              />
-              <ProducedWorksFilterSelect
-                id={labelFilterSelectId}
-                align="end"
-                value={labelFilter}
-                onChange={(e) => setLabelFilter(e.target.value)}
-                options={labelOptions}
-                ariaLabel="レーベルで絞り込み"
-              />
-            </div>
+          <div className="col-span-7 md:col-span-5 [grid-row:span_1] min-w-0 text-right">
+            <ProducedWorksFilterSelect
+              id={labelFilterSelectId}
+              align="end"
+              value={labelFilter}
+              onChange={setLabelFilter}
+              options={labelOptions}
+              ariaLabel="レーベルで絞り込み"
+              clearSlot={
+                <FilterClearButton
+                  active={Boolean(labelFilter)}
+                  onClear={() => setLabelFilter("")}
+                  ariaLabel="レーベルの絞り込みを解除"
+                />
+              }
+            />
           </div>
-          <div
-            className="max-md:hidden md:col-span-2 [grid-row:span_1]"
-            aria-hidden
-          />
           <div className="col-span-3 md:col-span-3 [grid-row:span_1] min-w-0 text-left">
-            <div className="flex w-full min-w-0 items-center justify-start gap-x-[4px]">
-              <FilterClearButton
-                active={Boolean(artistFilter)}
-                onClear={() => setArtistFilter("")}
-                ariaLabel="アーティストの絞り込みを解除"
-              />
-              <ProducedWorksFilterSelect
-                id={artistFilterSelectId}
-                align="start"
-                value={artistFilter}
-                onChange={(e) => setArtistFilter(e.target.value)}
-                options={artistOptions}
-                ariaLabel="アーティストで絞り込み"
-              />
-            </div>
+            <ProducedWorksFilterSelect
+              id={artistFilterSelectId}
+              align="start"
+              value={artistFilter}
+              onChange={setArtistFilter}
+              options={artistOptions}
+              ariaLabel="アーティストで絞り込み"
+              clearSlot={
+                <FilterClearButton
+                  active={Boolean(artistFilter)}
+                  onClear={() => setArtistFilter("")}
+                  ariaLabel="アーティストの絞り込みを解除"
+                />
+              }
+            />
           </div>
           <div className="col-span-4 md:col-span-3 [grid-row:span_1] min-w-0 text-left md:text-right">
-            <div className="flex w-full min-w-0 items-center justify-start md:justify-end gap-x-[4px]">
-              <FilterClearButton
-                active={Boolean(roleFilter)}
-                onClear={() => setRoleFilter("")}
-                ariaLabel="ロールの絞り込みを解除"
-              />
-              <ProducedWorksFilterSelect
-                id={roleFilterSelectId}
-                align="startMdEnd"
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                options={roleOptions}
-                ariaLabel="ロールで絞り込み"
-              />
-            </div>
+            <ProducedWorksFilterSelect
+              id={roleFilterSelectId}
+              align="startMdEnd"
+              value={roleFilter}
+              onChange={setRoleFilter}
+              options={roleOptions}
+              ariaLabel="ロールで絞り込み"
+              clearSlot={
+                <FilterClearButton
+                  active={Boolean(roleFilter)}
+                  onClear={() => setRoleFilter("")}
+                  ariaLabel="ロールの絞り込みを解除"
+                />
+              }
+            />
           </div>
           <div className="col-span-2 col-start-8 md:col-span-2 md:col-start-17 [grid-row:span_1] min-w-0 text-right">
             <button
@@ -551,7 +596,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                     active={isActive}
                   />
                 </div>
-                <div className="col-span-7 md:col-span-3 [grid-row:span_1] text-right">
+                <div className="col-span-7 md:col-span-5 [grid-row:span_1] text-right">
                   <ScrambleText
                     text={work.label}
                     mode="lap"
@@ -560,10 +605,6 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                     active={isActive}
                   />
                 </div>
-                <div
-                  className="max-md:hidden md:col-span-2 [grid-row:span_1]"
-                  aria-hidden
-                />
                 <div className="col-span-3 md:col-span-3 [grid-row:span_1] text-left">
                   <ScrambleText
                     text={work.artist}
