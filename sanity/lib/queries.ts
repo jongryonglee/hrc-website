@@ -109,6 +109,7 @@ export const PRODUCED_WORK_ITEMS_QUERY = defineQuery(/* groq */ `
       _id,
       title,
       label,
+      category,
       artist,
       role,
       date,

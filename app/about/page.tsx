@@ -9,6 +9,7 @@ const PLACEHOLDER_PRODUCED_WORKS: ProducedWorkItem[] = [
     _id: "produced-work-placeholder-1",
     title: "Unpaused / Vela",
     label: "ABCDEF Label",
+    category: "label-releases",
     artist: "theeluu",
     role: "produce, mix, mastering, chorus direction",
     date: "2025/10/17",

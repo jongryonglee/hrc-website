@@ -115,7 +115,7 @@ export const GraphicDesignGrid = ({ items }: GraphicDesignGridProps) => {
                   className="cursor-pointer"
                 >
                   <span
-                    className={filter === btn.key ? "" : "line-through"}
+                    className={filter === btn.key ? "line-through" : ""}
                   >
                     {btn.label}
                   </span>

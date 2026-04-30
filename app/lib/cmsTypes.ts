@@ -77,11 +77,22 @@ export type GraphicDesignListItem = {
   thumbnailUrl?: string | null;
 };
 
+/** Produced Work のプロジェクト種別（Sanity `producedWorkItem.category`） */
+export const PRODUCED_WORK_CATEGORY_VALUES = [
+  "commercial-projects",
+  "label-releases",
+  "indie-projects",
+] as const;
+
+export type ProducedWorkCategory = (typeof PRODUCED_WORK_CATEGORY_VALUES)[number];
+
 /** PRODUCED_WORK_ITEMS_QUERY */
 export type ProducedWorkItem = {
   _id: string;
   title: string;
   label: string;
+  /** 未設定のレコードは種別フィルター対象外として扱う */
+  category?: ProducedWorkCategory | null;
   artist: string;
   role: string;
   date?: string | null;

@@ -22,6 +22,20 @@ export const producedWorkItem = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: "category",
+      title: "Category",
+      description: "プロジェクト種別（About の produced works 一覧のフィルターに使用）",
+      type: "string",
+      options: {
+        list: [
+          { title: "Commercial Projects", value: "commercial-projects" },
+          { title: "Label Releases", value: "label-releases" },
+          { title: "Indie Projects", value: "indie-projects" },
+        ],
+        layout: "radio",
+      },
+    }),
+    defineField({
       name: "artist",
       title: "Artist",
       type: "string",
