@@ -2,16 +2,16 @@
 
 import {
   useCallback,
-  useEffect,
   useId,
   useMemo,
-  useRef,
   useState,
-  type ReactNode,
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import type { ProducedWorkItem } from "@/app/lib/cmsTypes";
+import type {
+  ProducedWorkCategory,
+  ProducedWorkItem,
+} from "@/app/lib/cmsTypes";
 import { Footer } from "../components/Footer";
 import { Header } from "../components/Header";
 import { ScrambleText } from "../components/ScrambleText";
@@ -105,55 +105,12 @@ const sortFieldBtnBaseClass =
 const PRODUCED_WORK_DATE_PLACEHOLDER = "2026/01/01";
 
 const FILTER_TAB_HEADER_PX = 17;
-/** select の表示右端と filtertab.svg の間（flex gap） */
+/** filtertab.svg 横並びの flex gap */
 const FILTER_SELECT_ICON_GAP_PX = 6;
-
-const filterClearBtnClass =
-  "shrink-0 cursor-pointer bg-transparent p-0 text-white leading-[inherit] border-0 transition-opacity hover:opacity-65";
-
-function FilterClearButton({
-  active,
-  onClear,
-  ariaLabel,
-}: {
-  active: boolean;
-  onClear: () => void;
-  ariaLabel: string;
-}) {
-  if (!active) return null;
-  return (
-    <button
-      type="button"
-      onClick={onClear}
-      className={filterClearBtnClass}
-      aria-label={ariaLabel}
-    >
-      ×
-    </button>
-  );
-}
 
 type ProducedWorksFilterAlign = "start" | "end" | "startMdEnd";
 
-/** produced works 見出し行: All + filtertab.svg + オプション絞り込み */
-function ProducedWorksFilterSelect({
-  id,
-  value,
-  onChange,
-  options,
-  ariaLabel,
-  align,
-  clearSlot,
-}: {
-  id: string;
-  value: string;
-  onChange: (nextValue: string) => void;
-  options: string[];
-  ariaLabel: string;
-  align: ProducedWorksFilterAlign;
-  /** × 解除ボタン（`FilterClearButton` など）。トリガー直前に隙間なく並べる */
-  clearSlot?: ReactNode;
-}) {
+function producedWorksFilterAlignStyle(align: ProducedWorksFilterAlign) {
   const wrapJustify =
     align === "start"
       ? "justify-start"
@@ -166,138 +123,142 @@ function ProducedWorksFilterSelect({
       : align === "end"
         ? "text-right"
         : "text-left md:text-right";
+  return { wrapJustify, textAlign };
+}
 
-  const [isOpen, setIsOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const listboxId = `${id}-listbox`;
-  const optionIds = useMemo(
-    () => options.map((_, index) => `${id}-opt-${index}`),
-    [id, options],
-  );
-  useEffect(() => {
-    if (!isOpen) return;
-    const onPointerDown = (event: PointerEvent) => {
-      const root = rootRef.current;
-      if (!root) return;
-      if (!root.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    const onEsc = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setIsOpen(false);
-      triggerRef.current?.focus();
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onEsc);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onEsc);
-    };
-  }, [isOpen]);
-
-  const displayLabel = value === "" ? "All" : value;
-  const openMenu = useCallback(() => setIsOpen(true), []);
-  const toggleMenu = useCallback(() => setIsOpen((prev) => !prev), []);
+/** produced works: All → … をクリックで順に巡回（カテゴリ・アーティスト・ロール共通レイアウト） */
+function ProducedWorksCycleFilterRow({
+  id,
+  displayLabel,
+  onCycle,
+  ariaLabelBase,
+  align,
+}: {
+  id: string;
+  displayLabel: string;
+  onCycle: () => void;
+  ariaLabelBase: string;
+  align: ProducedWorksFilterAlign;
+}) {
+  const { wrapJustify, textAlign } = producedWorksFilterAlignStyle(align);
 
   return (
-    <div ref={rootRef} className="relative w-full min-w-0 max-w-full touch-manipulation">
+    <div className="relative w-full min-w-0 max-w-full touch-manipulation">
       <div className={`flex max-w-full items-center ${wrapJustify}`}>
         <div className="inline-flex max-w-full min-w-0 shrink-0 items-center gap-0">
-          {clearSlot}
-          <div
-            className="inline-flex max-w-full min-w-0 shrink-0 items-center"
+          <button
+            type="button"
+            id={id}
+            onClick={onCycle}
+            aria-label={`${ariaLabelBase}。現在は ${displayLabel}。クリックで次に切り替え`}
+            className={`inline-flex max-w-full min-w-0 shrink-0 cursor-pointer items-center border-0 bg-transparent py-0 pl-[4px] pr-[2px] font-normal text-[inherit] leading-[1.1] antialiased [-webkit-tap-highlight-color:transparent] ${textAlign}`}
             style={{ gap: FILTER_SELECT_ICON_GAP_PX }}
           >
-            <button
-              ref={triggerRef}
-              type="button"
-              id={id}
-              onClick={toggleMenu}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  openMenu();
-                }
-              }}
-              aria-label={ariaLabel}
-              aria-haspopup="listbox"
-              aria-controls={listboxId}
-              aria-expanded={isOpen}
-              className={`inline-flex max-w-full min-w-0 w-fit cursor-pointer border-0 bg-transparent py-0 pl-[4px] pr-[2px] font-normal text-[inherit] leading-[1.1] antialiased ${textAlign}`}
-            >
-              <span className="min-w-0 truncate">{displayLabel}</span>
-            </button>
+            <span className="min-w-0 truncate">{displayLabel}</span>
             <span
-              className="inline-flex shrink-0 cursor-pointer translate-y-[1px] select-none leading-none [-webkit-tap-highlight-color:transparent]"
+              className="inline-flex shrink-0 translate-y-[1px] select-none leading-none pointer-events-none"
               aria-hidden
-              onPointerDown={(e) => {
-                e.preventDefault();
-                setIsOpen((prev) => !prev);
-              }}
             >
               <Image
                 src="/icon/filtertab.svg"
                 alt=""
                 width={FILTER_TAB_HEADER_PX}
                 height={FILTER_TAB_HEADER_PX}
-                className="pointer-events-none shrink-0"
+                className="shrink-0"
                 draggable={false}
               />
             </span>
-          </div>
+          </button>
         </div>
       </div>
-      {isOpen ? (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label={ariaLabel}
-          className={`absolute left-0 right-0 top-[calc(100%+8px)] z-30 w-full min-w-0 border border-white/20 bg-black py-[4px] text-white`}
-        >
-          {options.map((o, index) => (
-            <li key={o} role="option" aria-selected={value === o}>
-              <button
-                id={optionIds[index]}
-                type="button"
-                className={`w-full cursor-pointer bg-transparent px-[8px] py-[4px] ${textAlign} transition-colors hover:bg-white/10`}
-                onClick={() => {
-                  onChange(o);
-                  setIsOpen(false);
-                }}
-              >
-                {o}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }
 
+/** 文字列フィルター: All（""）→ options 各項目を順に巡回 */
+function cycleThroughOrdered(prev: string, orderedOptions: string[]): string {
+  const states = ["", ...orderedOptions];
+  const i = states.indexOf(prev);
+  const idx = i >= 0 ? i : 0;
+  return states[(idx + 1) % states.length] ?? "";
+}
+
+/** produced works レーベル列ヘッダー: All ↔ 各カテゴリをクリックで巡回 */
+type ProducedWorksCategoryFilterUi = "all" | ProducedWorkCategory;
+
+const PRODUCED_WORK_CATEGORY_CYCLE: ProducedWorksCategoryFilterUi[] = [
+  "all",
+  "commercial-projects",
+  "label-releases",
+  "indie-projects",
+];
+
+const PRODUCED_WORK_CATEGORY_LABELS: Record<
+  ProducedWorksCategoryFilterUi,
+  string
+> = {
+  all: "All",
+  "commercial-projects": "Commercial Projects",
+  "label-releases": "Label Releases",
+  "indie-projects": "Indie Projects",
+};
+
+function ProducedWorksCategoryCycleFilter({
+  id,
+  value,
+  onCycle,
+  ariaLabelBase,
+  align,
+}: {
+  id: string;
+  value: ProducedWorksCategoryFilterUi;
+  onCycle: () => void;
+  ariaLabelBase: string;
+  align: ProducedWorksFilterAlign;
+}) {
+  return (
+    <ProducedWorksCycleFilterRow
+      id={id}
+      displayLabel={PRODUCED_WORK_CATEGORY_LABELS[value]}
+      onCycle={onCycle}
+      ariaLabelBase={ariaLabelBase}
+      align={align}
+    />
+  );
+}
+
+type ProducedWorksListFilters = {
+  category: ProducedWorksCategoryFilterUi;
+  artist: string;
+  role: string;
+};
+
+const INITIAL_PRODUCED_WORKS_FILTERS: ProducedWorksListFilters = {
+  category: "all",
+  artist: "",
+  role: "",
+};
+
 export function AboutPageClient({ initialProducedWorks }: Props) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [labelFilter, setLabelFilter] = useState("");
-  const [artistFilter, setArtistFilter] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
+  const [producedWorksFilters, setProducedWorksFilters] =
+    useState<ProducedWorksListFilters>(INITIAL_PRODUCED_WORKS_FILTERS);
   const [titleSort, setTitleSort] = useState<ProducedWorksSort>(null);
   const [dateSort, setDateSort] = useState<ProducedWorksSort>(null);
 
-  const labelFilterSelectId = useId();
-  const artistFilterSelectId = useId();
-  const roleFilterSelectId = useId();
+  const categoryFilter = producedWorksFilters.category;
+  const artistFilter = producedWorksFilters.artist;
+  const roleFilter = producedWorksFilters.role;
+
+  const categoryCycleFilterId = useId();
+  const artistCycleFilterId = useId();
+  const roleCycleFilterId = useId();
 
   const orderIndex = useMemo(
     () => new Map(initialProducedWorks.map((w, i) => [w._id, i])),
     [initialProducedWorks],
   );
 
-  const labelOptions = useMemo(
-    () => uniqSorted(initialProducedWorks.map((w) => w.label)),
-    [initialProducedWorks],
-  );
   const artistOptions = useMemo(
     () =>
       uniqSorted(
@@ -331,6 +292,41 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
     });
   }, []);
 
+  const cycleCategoryFilter = useCallback(() => {
+    setProducedWorksFilters((f) => {
+      const i = PRODUCED_WORK_CATEGORY_CYCLE.indexOf(f.category);
+      const idx = i >= 0 ? i : 0;
+      const nextCat =
+        PRODUCED_WORK_CATEGORY_CYCLE[
+          (idx + 1) % PRODUCED_WORK_CATEGORY_CYCLE.length
+        ];
+      if (nextCat !== "all") {
+        return { category: nextCat, artist: "", role: "" };
+      }
+      return { ...f, category: nextCat };
+    });
+  }, []);
+
+  const cycleArtistFilter = useCallback(() => {
+    setProducedWorksFilters((f) => {
+      const nextArtist = cycleThroughOrdered(f.artist, artistOptions);
+      if (nextArtist !== "") {
+        return { category: "all", artist: nextArtist, role: "" };
+      }
+      return { ...f, artist: nextArtist };
+    });
+  }, [artistOptions]);
+
+  const cycleRoleFilter = useCallback(() => {
+    setProducedWorksFilters((f) => {
+      const nextRole = cycleThroughOrdered(f.role, roleOptions);
+      if (nextRole !== "") {
+        return { category: "all", artist: "", role: nextRole };
+      }
+      return { ...f, role: nextRole };
+    });
+  }, [roleOptions]);
+
   const displayedWorks = useMemo(() => {
     const filtered = initialProducedWorks.filter((w) => {
       if (
@@ -342,7 +338,12 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
       if (roleFilter && !splitRoleTokens(w.role).includes(roleFilter)) {
         return false;
       }
-      if (labelFilter && w.label !== labelFilter) return false;
+      if (
+        categoryFilter !== "all" &&
+        w.category !== categoryFilter
+      ) {
+        return false;
+      }
       return true;
     });
 
@@ -367,7 +368,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
     );
   }, [
     initialProducedWorks,
-    labelFilter,
+    categoryFilter,
     artistFilter,
     roleFilter,
     titleSort,
@@ -518,54 +519,30 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
             </button>
           </div>
           <div className="col-span-7 md:col-span-5 [grid-row:span_1] min-w-0 text-right">
-            <ProducedWorksFilterSelect
-              id={labelFilterSelectId}
+            <ProducedWorksCategoryCycleFilter
+              id={categoryCycleFilterId}
               align="end"
-              value={labelFilter}
-              onChange={setLabelFilter}
-              options={labelOptions}
-              ariaLabel="レーベルで絞り込み"
-              clearSlot={
-                <FilterClearButton
-                  active={Boolean(labelFilter)}
-                  onClear={() => setLabelFilter("")}
-                  ariaLabel="レーベルの絞り込みを解除"
-                />
-              }
+              value={categoryFilter}
+              onCycle={cycleCategoryFilter}
+              ariaLabelBase="プロジェクト種別で絞り込み"
             />
           </div>
           <div className="col-span-3 md:col-span-3 [grid-row:span_1] min-w-0 text-left">
-            <ProducedWorksFilterSelect
-              id={artistFilterSelectId}
+            <ProducedWorksCycleFilterRow
+              id={artistCycleFilterId}
               align="start"
-              value={artistFilter}
-              onChange={setArtistFilter}
-              options={artistOptions}
-              ariaLabel="アーティストで絞り込み"
-              clearSlot={
-                <FilterClearButton
-                  active={Boolean(artistFilter)}
-                  onClear={() => setArtistFilter("")}
-                  ariaLabel="アーティストの絞り込みを解除"
-                />
-              }
+              displayLabel={artistFilter === "" ? "All" : artistFilter}
+              onCycle={cycleArtistFilter}
+              ariaLabelBase="アーティストで絞り込み"
             />
           </div>
           <div className="col-span-4 md:col-span-3 [grid-row:span_1] min-w-0 text-left md:text-right">
-            <ProducedWorksFilterSelect
-              id={roleFilterSelectId}
+            <ProducedWorksCycleFilterRow
+              id={roleCycleFilterId}
               align="startMdEnd"
-              value={roleFilter}
-              onChange={setRoleFilter}
-              options={roleOptions}
-              ariaLabel="ロールで絞り込み"
-              clearSlot={
-                <FilterClearButton
-                  active={Boolean(roleFilter)}
-                  onClear={() => setRoleFilter("")}
-                  ariaLabel="ロールの絞り込みを解除"
-                />
-              }
+              displayLabel={roleFilter === "" ? "All" : roleFilter}
+              onCycle={cycleRoleFilter}
+              ariaLabelBase="ロールで絞り込み"
             />
           </div>
           <div className="col-span-2 col-start-8 md:col-span-2 md:col-start-17 [grid-row:span_1] min-w-0 text-right">

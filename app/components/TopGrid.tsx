@@ -82,7 +82,7 @@ const GRID_CYCLE2 = {
 const GRID_GAP_PX = 17;
 /** 巡目1+gap+巡目2 が 1 セットだけだったときの 1 ループ秒数（見た目の速さの基準） */
 const BASE_SECONDS_PER_PAIR_PERIOD = 80;
-/** 1列の幅: モバイル 268px / md 以上 360px（--cell-w で切替） */
+/** 1列の幅: モバイル 252px / md〜1699px 268px / 1700px+ 300px（--cell-w） */
 const CELL_W_CSS_VAR = "var(--cell-w)";
 
 const LETTER_TO_INDEX: Record<string, number> = {
@@ -174,7 +174,7 @@ function GridCopy({
   return (
     <div
       ref={innerRef}
-      className="shrink-0 [--cell-w:268px] min-[1700px]:[--cell-w:300px]"
+      className="shrink-0 max-md:[--cell-w:230px] md:[--cell-w:268px] min-[1700px]:[--cell-w:300px]"
       style={{
         display: "grid",
         gridTemplateColumns: `repeat(6, ${CELL_W_CSS_VAR})`,
@@ -204,7 +204,7 @@ function GridCopy({
                 src={slot.url}
                 alt=""
                 fill
-                sizes="(max-width: 767px) 268px, 360px"
+                sizes="(max-width: 767px) 230px, 360px"
                 className="object-cover object-center max-md:scale-[0.992] max-md:[transform-origin:center]"
                 draggable={false}
                 unoptimized={nextImageUnoptimized(slot.url)}

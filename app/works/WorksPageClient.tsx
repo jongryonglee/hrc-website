@@ -136,7 +136,7 @@ export function WorksPageClient({ initialItems }: Props) {
                   >
                     <span
                       className={
-                        filter === btn.key ? "" : "line-through"
+                        filter === btn.key ? "line-through" : ""
                       }
                     >
                       {btn.label}

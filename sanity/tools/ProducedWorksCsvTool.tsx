@@ -6,7 +6,15 @@ import { useClient } from "sanity";
 type CsvRow = Record<string, string>;
 
 const REQUIRED_COLUMNS = ["title", "label", "artist", "role", "date", "link"] as const;
-const OPTIONAL_COLUMNS = ["id", "_id"] as const;
+const OPTIONAL_COLUMNS = ["id", "_id", "category"] as const;
+
+const PRODUCED_WORK_CATEGORY_SLUGS = [
+  "commercial-projects",
+  "label-releases",
+  "indie-projects",
+] as const;
+
+type ProducedWorkCsvCategory = (typeof PRODUCED_WORK_CATEGORY_SLUGS)[number];
 
 const HEADER_ALIASES: Record<string, string> = {
   title: "title",
@@ -19,9 +27,26 @@ const HEADER_ALIASES: Record<string, string> = {
   "日付": "date",
   link: "link",
   "リンク": "link",
+  category: "category",
+  "カテゴリ": "category",
   id: "id",
   _id: "_id",
 };
+
+function normalizeCategoryCell(raw: string | undefined): ProducedWorkCsvCategory | undefined {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return undefined;
+  const lower = trimmed.toLowerCase();
+  if ((PRODUCED_WORK_CATEGORY_SLUGS as readonly string[]).includes(lower)) {
+    return lower as ProducedWorkCsvCategory;
+  }
+  const byTitle: Record<string, ProducedWorkCsvCategory> = {
+    "commercial projects": "commercial-projects",
+    "label releases": "label-releases",
+    "indie projects": "indie-projects",
+  };
+  return byTitle[lower];
+}
 
 const toolContainerStyle: React.CSSProperties = {
   maxWidth: 960,
@@ -176,12 +201,24 @@ export function ProducedWorksCsvTool() {
 
       for (let batchStart = 0; batchStart < validRows.length; batchStart += BATCH_SIZE) {
         const batch = validRows.slice(batchStart, batchStart + BATCH_SIZE);
+        const ids = batch.map((row, localIndex) =>
+          generateDocumentId(row, batchStart + localIndex),
+        );
+        const existingDocs = await client.fetch<
+          Array<{ _id: string; category?: ProducedWorkCsvCategory }>
+        >(`*[_id in $ids]{_id,category}`, { ids });
+        const existingById = new Map(existingDocs.map((d) => [d._id, d]));
+
         let tx = client.transaction();
 
         batch.forEach((row, localIndex) => {
-          const globalIndex = batchStart + localIndex;
+          const id = ids[localIndex];
+          const prev = existingById.get(id);
+          const fromCsv = normalizeCategoryCell(row.category);
+          const mergedCategory = fromCsv ?? prev?.category;
+
           tx = tx.createOrReplace({
-            _id: generateDocumentId(row, globalIndex),
+            _id: id,
             _type: "producedWorkItem",
             title: row.title,
             label: row.label,
@@ -189,6 +226,7 @@ export function ProducedWorksCsvTool() {
             role: row.role,
             date: row.date,
             link: row.link,
+            ...(mergedCategory ? { category: mergedCategory } : {}),
           });
         });
 
@@ -211,7 +249,9 @@ export function ProducedWorksCsvTool() {
         Produced Works CSV Import
       </h2>
       <p style={{ marginBottom: 16 }}>
-        CSVのヘッダー: title, label, artist, role, date, link（id または _id は任意）
+        CSVのヘッダー: title, label, artist, role, date, link（id / _id / category
+        は任意。category は commercial-projects / label-releases / indie-projects または
+        Commercial Projects など）
       </p>
 
       <label
