@@ -37,6 +37,7 @@ export default async function OfficeRecPage() {
     <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
+      <div className="page-main-bottom-spacer">
       {/* Title & summary */}
       <section className="mt-[30px] md:mt-[0px]">
         <div className="layout-grid">
@@ -48,6 +49,7 @@ export default async function OfficeRecPage() {
       </section>
 
       <OfficeRecGrid items={officeRecItems} />
+      </div>
       <div className="mt-auto">
         <Footer />
       </div>

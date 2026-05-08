@@ -9,8 +9,11 @@ const hasCategory = ({ document }: { document?: Record<string, unknown> }) =>
 const isMusicVideo = ({ document }: { document?: Record<string, unknown> }) =>
   document?.category !== "music-video";
 
-const isSoundEffect = ({ document }: { document?: Record<string, unknown> }) =>
-  document?.category !== "sound-effect";
+/** Sound Effect / Audio Track で soundFile を表示 */
+const hideSoundFile = ({ document }: { document?: Record<string, unknown> }) => {
+  const c = document?.category;
+  return c !== "sound-effect" && c !== "audio-track";
+};
 
 export const workItem = defineType({
   name: "workItem",
@@ -63,6 +66,7 @@ export const workItem = defineType({
         list: [
           { title: "Music Video", value: "music-video" },
           { title: "Sound Effect", value: "sound-effect" },
+          { title: "Audio Track", value: "audio-track" },
         ],
         layout: "radio",
       },
@@ -92,11 +96,11 @@ export const workItem = defineType({
       title: "Sound file",
       type: "file",
       description:
-        "Sound Effect 用の音源（MP3 / WAV / OGG など）。作品詳細の Sound ON で再生されます。",
+        "Sound Effect / Audio Track 用の音源（MP3 / WAV / OGG など）。作品詳細の Sound ON で再生されます。",
       options: {
         accept: "audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac",
       },
-      hidden: isSoundEffect,
+      hidden: hideSoundFile,
     }),
     defineField({
       name: "videoUrl",

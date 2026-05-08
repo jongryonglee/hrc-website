@@ -75,7 +75,9 @@ export function WorkDetailClient({ data }: Props) {
         { label: "Instagram", url: data?.instagramUrl },
       ]}
       soundToggleAudioSrc={
-        data?.category === "sound-effect" ? data.soundUrl ?? null : null
+        data?.category === "sound-effect" || data?.category === "audio-track"
+          ? (data.soundUrl ?? null)
+          : null
       }
       renderInfo={(textAnim) => (
         <div
@@ -85,7 +87,9 @@ export function WorkDetailClient({ data }: Props) {
             Works /{" "}
             {data?.category === "sound-effect"
               ? "Sound Effect"
-              : "Music Video"}{" "}
+              : data?.category === "audio-track"
+                ? "Audio Track"
+                : "Music Video"}{" "}
             /
           </p>
           <h2 className="text-[26px] leading-tight md:text-[32px]">

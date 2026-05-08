@@ -29,7 +29,7 @@ type Props = {
   initialItems: WorkItem[];
 };
 
-type FilterCategory = "all" | "music-video" | "sound-effect";
+type FilterCategory = "all" | "music-video" | "sound-effect" | "audio-track";
 
 export function WorksPageClient({ initialItems }: Props) {
   const router = useRouter();
@@ -74,15 +74,17 @@ export function WorksPageClient({ initialItems }: Props) {
       acc.all += 1;
       if (item.category === "music-video") acc.musicVideo += 1;
       if (item.category === "sound-effect") acc.soundEffect += 1;
+      if (item.category === "audio-track") acc.audioTrack += 1;
       return acc;
     },
-    { all: 0, musicVideo: 0, soundEffect: 0 }
+    { all: 0, musicVideo: 0, soundEffect: 0, audioTrack: 0 }
   );
 
   const filterButtons: { key: FilterCategory; label: string; count: number }[] = [
     { key: "all", label: "all", count: counts.all },
     { key: "music-video", label: "music video", count: counts.musicVideo },
     { key: "sound-effect", label: "sound effect", count: counts.soundEffect },
+    { key: "audio-track", label: "audio track", count: counts.audioTrack },
   ];
 
   const filteredItems =
@@ -117,6 +119,7 @@ export function WorksPageClient({ initialItems }: Props) {
     <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
+      <div className="page-main-bottom-spacer">
       {/* Title & summary */}
       <section className="mt-[30px] md:mt-[0px]">
         <div className="layout-grid">
@@ -152,11 +155,6 @@ export function WorksPageClient({ initialItems }: Props) {
         </div>
 
         <section className="mt-[15px] md:mt-[17px]">
-          <div className="layout-grid">
-            <div className="col-start-3 md:[grid-row:span_2] whitespace-nowrap">
-              <p>(produced works)</p>
-            </div>
-          </div>
 
           <div
             ref={listHoverAreaRef}
@@ -288,6 +286,7 @@ export function WorksPageClient({ initialItems }: Props) {
           </div>
         </section>
       </section>
+      </div>
 
       <div className="mt-auto">
         <Footer />

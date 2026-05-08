@@ -14,8 +14,8 @@ export type WorkListItem = {
   title: string;
   artist: string;
   producer?: string | null;
-  category: "music-video" | "sound-effect";
-  /** Music Video では必須想定。Sound Effect では未設定の場合あり */
+  category: "music-video" | "sound-effect" | "audio-track";
+  /** Music Video では必須想定。Sound Effect / Audio Track では未設定の場合あり */
   videoUrl?: string | null;
   thumbnailUrl?: string | null;
   label: string;
@@ -36,7 +36,7 @@ export type WorkDetailItem = {
   title: string;
   artist: string;
   producer?: string | null;
-  category: "music-video" | "sound-effect";
+  category: "music-video" | "sound-effect" | "audio-track";
   videoUrl?: string | null;
   soundCloudUrl?: string | null;
   instagramUrl?: string | null;
