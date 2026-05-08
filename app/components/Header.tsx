@@ -1,20 +1,25 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ScrambleText } from "./ScrambleText";
 
 export const Header = () => {
+  const pathname = usePathname() ?? "";
+
   return (
     <header className="pointer-events-none">
       {/* md: グリッド全面がヒット領域になると中央のレイヤー（例: Works 詳細の動画）を覆う */}
       <div className="layout-grid items-start md:[&>div]:[grid-row:span_6] pointer-events-auto md:pointer-events-none">
         {/* ロゴ */}
-        <div className="flex h-[17px] w-[46px] items-start md:pointer-events-auto">
+        <div className="flex h-[46px] w-[46px] items-start md:pointer-events-auto">
           <Link href="/" className="hover:opacity-70 transition-opacity">
             <Image
-              src="/logo-main.svg"
+              src="/icon/hrc_logo.svg"
               alt="HRC logo"
               width={46}
-              height={17}
+              height={46}
               priority
               className="h-full w-full object-contain"
             />
@@ -25,12 +30,12 @@ export const Header = () => {
         <div className="col-start-5 md:col-start-14 flex items-start md:pointer-events-auto">
           <div className="text-left whitespace-nowrap">
           <Link href="/works">
-            <p>
+            <p className={pathname.startsWith("/works") ? "line-through" : ""}>
               <ScrambleText text="Works" mode="lap" speedMs={40} durationMs={400} />
             </p>
           </Link>
           <Link href="/office_rec">
-            <p>
+            <p className={pathname.startsWith("/office_rec") ? "line-through" : ""}>
               <ScrambleText
                 text="Office Rec"
                 mode="lap"
@@ -40,7 +45,7 @@ export const Header = () => {
             </p>
           </Link>
           <Link href="/graphic_design">
-            <p>
+            <p className={pathname.startsWith("/graphic_design") ? "line-through" : ""}>
               <ScrambleText
                 text="Graphic Design"
                 mode="lap"
@@ -50,15 +55,13 @@ export const Header = () => {
             </p>
           </Link>
           <Link href="/about">
-            <p className="inline-flex items-center gap-1">
+            <p
+              className={`inline-flex items-center gap-1${
+                pathname.startsWith("/about") ? " line-through" : ""
+              }`}
+            >
               <ScrambleText
                 text="About"
-                mode="lap"
-                speedMs={40}
-                durationMs={400}
-              />
-              <ScrambleText
-                text="Us"
                 mode="lap"
                 speedMs={40}
                 durationMs={400}
@@ -72,7 +75,7 @@ export const Header = () => {
         <div className="col-start-8 md:col-start-18 flex items-start md:pointer-events-auto">
           <div className="text-left">
           <Link href="/contact">
-            <p>
+            <p className={pathname.startsWith("/contact") ? "line-through" : ""}>
               <ScrambleText text="Contact" mode="lap" speedMs={40} durationMs={400} />
             </p>
           </Link>

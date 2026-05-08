@@ -102,6 +102,7 @@ export default function ContactPage() {
     <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
+      <div className="pb-[calc(10*var(--grid-row))] md:pb-0">
       <section className="mt-[30px] md:mt-[0px]">
         <div className="layout-grid">
           <div className="grid-full [grid-row:span_4] md:[grid-row:span_5]">
@@ -125,7 +126,7 @@ export default function ContactPage() {
                   <p>出演の依頼やコラボの相談等は、<br />こちらのフォームからご連絡ください。</p>
                 </div>
                 <form
-                  className="flex-1 md:flex-11 text-[14px] leading-[1.1] md:text-[15px] space-y-[15px] md:space-y-[17px] ml-[calc((100%-80px)/9)] md:ml-0"
+                  className="contact-form flex-1 md:flex-11 text-[14px] leading-[1.1] md:text-[15px] space-y-[15px] md:space-y-[17px] ml-[calc((100%-80px)/9)] md:ml-0"
                   onSubmit={handleSubmit}
                   noValidate
                 >
@@ -379,8 +380,7 @@ export default function ContactPage() {
           )}
         </div>
       </section>
-
-    
+      </div>
 
       <div className="mt-auto">
         <Footer />

@@ -59,7 +59,7 @@ export const Footer = () => {
         </div>
 
         <div className="col-start-5 [grid-row:span_2] md:col-span-1 md:items-end">
-          <p className="md:self-end">©︎ 2025</p>
+          <p className="md:self-end">©︎ 2026</p>
         </div>
  
       </div>

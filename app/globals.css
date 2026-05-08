@@ -78,6 +78,29 @@ h1 {
 
 .grid-full { grid-column: 1 / -1; }
 
+/* Works / Office Rec / Graphic Design / About: メイン〜フッター間（モバイル10行・デスクトップ20行） */
+.page-main-bottom-spacer {
+  padding-bottom: calc(10 * var(--grid-row));
+}
+
+@media (min-width: 768px) {
+  .page-main-bottom-spacer {
+    padding-bottom: calc(20 * var(--grid-row));
+  }
+}
+
+/* Contact: WebKit 自動入力の白/黄ハイライトを黒背景・白文字に合わせる */
+.contact-form :is(input:not([type="radio"]), textarea):-webkit-autofill,
+.contact-form :is(input:not([type="radio"]), textarea):-webkit-autofill:hover,
+.contact-form :is(input:not([type="radio"]), textarea):-webkit-autofill:focus,
+.contact-form
+  :is(input:not([type="radio"]), textarea):-webkit-autofill:active {
+  -webkit-text-fill-color: #fff;
+  caret-color: #fff;
+  box-shadow: inset 0 0 0 1000px #000;
+  transition: background-color 99999s ease-out;
+}
+
 /* トップ起動時: スイッチ OFF アイコンの点滅（bootComplete 後は外す） */
 /* 旧 3000ms の 0〜77.778% を 100% に圧縮。3 回点灯のあとの暗で終了 → 4 回目は点灯させず ON */
 @keyframes switch-off-blink {

@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useId,
   useMemo,
   useState,
 } from "react";
@@ -54,6 +53,20 @@ function splitRoleTokens(role: string): string[] {
   return s.split(/\s+/).filter(Boolean);
 }
 
+/** Categories 固定キーが role 欄にマッチするか */
+function roleFieldMatchesFixedFilter(role: string, filterKey: string): boolean {
+  if (!filterKey) return true;
+  const s = role.trim();
+  if (!s) return false;
+  const segments = s.includes(",")
+    ? s.split(",").map((t) => t.trim()).filter(Boolean)
+    : [s];
+  return segments.some(
+    (seg) =>
+      seg === filterKey || splitRoleTokens(seg).includes(filterKey),
+  );
+}
+
 /** produced works タイトル／日付ソート（3 状態トグル） */
 type ProducedWorksSort = "asc" | "desc" | null;
 
@@ -99,91 +112,12 @@ function ProducedWorksSortTabPair({ sort }: { sort: ProducedWorksSort }) {
 }
 
 const sortFieldBtnBaseClass =
-  "shrink-0 cursor-pointer whitespace-nowrap bg-transparent p-0 font-normal text-[inherit] leading-[1.1] antialiased border-0 transition-opacity hover:opacity-65 inline-flex items-center gap-x-[6px]";
+  "shrink-0 cursor-pointer whitespace-nowrap bg-transparent p-0 font-normal text-[inherit] leading-[1.1] antialiased border-0 transition-opacity hover:opacity-65 inline-flex items-center gap-x-[3px]";
 
 /** CMS に date が無い行の仮表示（YYYYMMDD） */
 const PRODUCED_WORK_DATE_PLACEHOLDER = "2026/01/01";
 
-const FILTER_TAB_HEADER_PX = 17;
-/** filtertab.svg 横並びの flex gap */
-const FILTER_SELECT_ICON_GAP_PX = 6;
-
-type ProducedWorksFilterAlign = "start" | "end" | "startMdEnd";
-
-function producedWorksFilterAlignStyle(align: ProducedWorksFilterAlign) {
-  const wrapJustify =
-    align === "start"
-      ? "justify-start"
-      : align === "end"
-        ? "justify-end"
-        : "justify-start md:justify-end";
-  const textAlign =
-    align === "start"
-      ? "text-left"
-      : align === "end"
-        ? "text-right"
-        : "text-left md:text-right";
-  return { wrapJustify, textAlign };
-}
-
-/** produced works: All → … をクリックで順に巡回（カテゴリ・アーティスト・ロール共通レイアウト） */
-function ProducedWorksCycleFilterRow({
-  id,
-  displayLabel,
-  onCycle,
-  ariaLabelBase,
-  align,
-}: {
-  id: string;
-  displayLabel: string;
-  onCycle: () => void;
-  ariaLabelBase: string;
-  align: ProducedWorksFilterAlign;
-}) {
-  const { wrapJustify, textAlign } = producedWorksFilterAlignStyle(align);
-
-  return (
-    <div className="relative w-full min-w-0 max-w-full touch-manipulation">
-      <div className={`flex max-w-full items-center ${wrapJustify}`}>
-        <div className="inline-flex max-w-full min-w-0 shrink-0 items-center gap-0">
-          <button
-            type="button"
-            id={id}
-            onClick={onCycle}
-            aria-label={`${ariaLabelBase}。現在は ${displayLabel}。クリックで次に切り替え`}
-            className={`inline-flex max-w-full min-w-0 shrink-0 cursor-pointer items-center border-0 bg-transparent py-0 pl-[4px] pr-[2px] font-normal text-[inherit] leading-[1.1] antialiased [-webkit-tap-highlight-color:transparent] ${textAlign}`}
-            style={{ gap: FILTER_SELECT_ICON_GAP_PX }}
-          >
-            <span className="min-w-0 truncate">{displayLabel}</span>
-            <span
-              className="inline-flex shrink-0 translate-y-[1px] select-none leading-none pointer-events-none"
-              aria-hidden
-            >
-              <Image
-                src="/icon/filtertab.svg"
-                alt=""
-                width={FILTER_TAB_HEADER_PX}
-                height={FILTER_TAB_HEADER_PX}
-                className="shrink-0"
-                draggable={false}
-              />
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** 文字列フィルター: All（""）→ options 各項目を順に巡回 */
-function cycleThroughOrdered(prev: string, orderedOptions: string[]): string {
-  const states = ["", ...orderedOptions];
-  const i = states.indexOf(prev);
-  const idx = i >= 0 ? i : 0;
-  return states[(idx + 1) % states.length] ?? "";
-}
-
-/** produced works レーベル列ヘッダー: All ↔ 各カテゴリをクリックで巡回 */
+/** produced works プロジェクト種別 UI 値 */
 type ProducedWorksCategoryFilterUi = "all" | ProducedWorkCategory;
 
 const PRODUCED_WORK_CATEGORY_CYCLE: ProducedWorksCategoryFilterUi[] = [
@@ -203,27 +137,212 @@ const PRODUCED_WORK_CATEGORY_LABELS: Record<
   "indie-projects": "Indie Projects",
 };
 
-function ProducedWorksCategoryCycleFilter({
-  id,
+/** All / … のインライン切り替え（選択＝斜線・不透過、未選択＝薄色） */
+function ProducedWorksSlashFilterRow({
+  ariaLabel,
   value,
-  onCycle,
-  ariaLabelBase,
-  align,
+  options,
+  onChange,
+  justifyClassName,
+  /** md 以上：キー単位で行を固定（2行目は先頭に ` / ` を付ける） */
+  mdGroupedKeys,
 }: {
-  id: string;
-  value: ProducedWorksCategoryFilterUi;
-  onCycle: () => void;
-  ariaLabelBase: string;
-  align: ProducedWorksFilterAlign;
+  ariaLabel: string;
+  value: string;
+  options: { key: string; label: string }[];
+  onChange: (key: string) => void;
+  justifyClassName: string;
+  mdGroupedKeys?: string[][];
 }) {
+  const pClass = `flex flex-wrap text-[inherit] leading-[1.1] ${justifyClassName}`;
+
+  const slash = (
+    <span aria-hidden className="opacity-45">
+      {" "}
+      /{" "}
+    </span>
+  );
+
+  const optButton = (opt: { key: string; label: string }) => (
+    <button
+      type="button"
+      onClick={() => onChange(opt.key)}
+      className={`cursor-pointer border-0 bg-transparent p-0 font-normal text-[inherit] antialiased [-webkit-tap-highlight-color:transparent] ${
+        value === opt.key
+          ? "opacity-100 line-through"
+          : "opacity-40 transition-opacity hover:opacity-65"
+      }`}
+      aria-pressed={value === opt.key}
+    >
+      {opt.label}
+    </button>
+  );
+
+  const flatRow = (
+    <p className={pClass}>
+      {options.map((opt, i) => (
+        <span key={opt.key} className="inline whitespace-nowrap">
+          {i > 0 && slash}
+          {optButton(opt)}
+        </span>
+      ))}
+    </p>
+  );
+
+  if (!mdGroupedKeys?.length) {
+    return (
+      <div role="group" aria-label={ariaLabel}>
+        {flatRow}
+      </div>
+    );
+  }
+
+  const keyToOpt = new Map(options.map((o) => [o.key, o]));
+
+  const mdRows = mdGroupedKeys
+    .map((keys) => keys.flatMap((k) => keyToOpt.get(k) ?? []))
+    .filter((row) => row.length > 0);
+
   return (
-    <ProducedWorksCycleFilterRow
-      id={id}
-      displayLabel={PRODUCED_WORK_CATEGORY_LABELS[value]}
-      onCycle={onCycle}
-      ariaLabelBase={ariaLabelBase}
-      align={align}
-    />
+    <div role="group" aria-label={ariaLabel}>
+      <div className="md:hidden">{flatRow}</div>
+      <div className="max-md:hidden space-y-[0.35em]">
+        {mdRows.map((rowOpts, rowIdx) => (
+          <p key={rowIdx} className={pClass}>
+            {rowOpts.map((opt, i) => (
+              <span key={opt.key} className="inline whitespace-nowrap">
+                {(rowIdx > 0 || i > 0) && slash}
+                {optButton(opt)}
+              </span>
+            ))}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** (Categories) 固定リスト — 3 行レイアウト、compact で 1 行に並べる */
+function ProducedWorksFixedRoleCategoryFilter({
+  value,
+  onChange,
+  justifyClassName,
+  compact,
+}: {
+  value: string;
+  onChange: (key: string) => void;
+  justifyClassName: string;
+  /** モバイル2列など：全ロールを1行（折り返し）に並べる */
+  compact?: boolean;
+}) {
+  const optCls = (k: string) =>
+    `cursor-pointer border-0 bg-transparent p-0 font-normal text-[inherit] antialiased [-webkit-tap-highlight-color:transparent] ${
+      value === k
+        ? "opacity-100 line-through"
+        : "opacity-40 transition-opacity hover:opacity-65"
+    }`;
+
+  const slash = (
+    <span aria-hidden className="opacity-45">
+      {" "}
+      /{" "}
+    </span>
+  );
+
+  const row1 = [
+    { key: "", label: "All" },
+    { key: "Mix", label: "Mix" },
+    { key: "Mastering", label: "Mastering" },
+    { key: "Beat", label: "Beat" },
+  ];
+  const row2 = [
+    { key: "Director", label: "Director" },
+    { key: "Director of Photography", label: "Director of Photography" },
+  ];
+  const row3 = [
+    { key: "Edit", label: "Edit" },
+    { key: "Title Design", label: "Title Design" },
+  ];
+  const allOptions = row1.concat(row2, row3);
+
+  if (compact) {
+    return (
+      <div role="group" aria-label="ロールで絞り込み" className="w-full">
+        <p
+          className={`flex flex-wrap text-[inherit] leading-[1.1] ${justifyClassName}`}
+        >
+          {allOptions.map((opt, i) => (
+            <span key={opt.key || "__all__"} className="inline whitespace-nowrap">
+              {i > 0 && slash}
+              <button
+                type="button"
+                onClick={() => onChange(opt.key)}
+                className={optCls(opt.key)}
+                aria-pressed={value === opt.key}
+              >
+                {opt.label}
+              </button>
+            </span>
+          ))}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div role="group" aria-label="ロールで絞り込み" className="w-full space-y-[0.35em]">
+      <p
+        className={`flex flex-wrap text-[inherit] leading-[1.35] ${justifyClassName}`}
+      >
+        {row1.map((opt, i) => (
+          <span key={opt.key || "__all__"} className="inline whitespace-nowrap">
+            {i > 0 && slash}
+            <button
+              type="button"
+              onClick={() => onChange(opt.key)}
+              className={optCls(opt.key)}
+              aria-pressed={value === opt.key}
+            >
+              {opt.label}
+            </button>
+          </span>
+        ))}
+      </p>
+      <p
+        className={`flex flex-wrap text-[inherit] leading-[1.35] ${justifyClassName}`}
+      >
+        {row2.map((opt, i) => (
+          <span key={opt.key} className="inline whitespace-nowrap">
+            {i > 0 && slash}
+            <button
+              type="button"
+              onClick={() => onChange(opt.key)}
+              className={optCls(opt.key)}
+              aria-pressed={value === opt.key}
+            >
+              {opt.label}
+            </button>
+          </span>
+        ))}
+      </p>
+      <p
+        className={`flex flex-wrap text-[inherit] leading-[1.35] ${justifyClassName}`}
+      >
+        {row3.map((opt, i) => (
+          <span key={opt.key} className="inline whitespace-nowrap">
+            {i > 0 && slash}
+            <button
+              type="button"
+              onClick={() => onChange(opt.key)}
+              className={optCls(opt.key)}
+              aria-pressed={value === opt.key}
+            >
+              {opt.label}
+            </button>
+          </span>
+        ))}
+      </p>
+    </div>
   );
 }
 
@@ -250,10 +369,6 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
   const artistFilter = producedWorksFilters.artist;
   const roleFilter = producedWorksFilters.role;
 
-  const categoryCycleFilterId = useId();
-  const artistCycleFilterId = useId();
-  const roleCycleFilterId = useId();
-
   const orderIndex = useMemo(
     () => new Map(initialProducedWorks.map((w, i) => [w._id, i])),
     [initialProducedWorks],
@@ -266,12 +381,22 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
       ),
     [initialProducedWorks],
   );
-  const roleOptions = useMemo(
+
+  const categorySlashOptions = useMemo(
     () =>
-      uniqSorted(
-        initialProducedWorks.flatMap((w) => splitRoleTokens(w.role)),
-      ),
-    [initialProducedWorks],
+      PRODUCED_WORK_CATEGORY_CYCLE.map((key) => ({
+        key,
+        label: PRODUCED_WORK_CATEGORY_LABELS[key],
+      })),
+    [],
+  );
+
+  const artistSlashOptions = useMemo(
+    () => [
+      { key: "", label: "All" },
+      ...artistOptions.map((a) => ({ key: a, label: a })),
+    ],
+    [artistOptions],
   );
 
   const cycleTitleSort = useCallback(() => {
@@ -292,40 +417,33 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
     });
   }, []);
 
-  const cycleCategoryFilter = useCallback(() => {
+  const selectCategory = useCallback((key: string) => {
+    const category = key as ProducedWorksCategoryFilterUi;
     setProducedWorksFilters((f) => {
-      const i = PRODUCED_WORK_CATEGORY_CYCLE.indexOf(f.category);
-      const idx = i >= 0 ? i : 0;
-      const nextCat =
-        PRODUCED_WORK_CATEGORY_CYCLE[
-          (idx + 1) % PRODUCED_WORK_CATEGORY_CYCLE.length
-        ];
-      if (nextCat !== "all") {
-        return { category: nextCat, artist: "", role: "" };
+      if (category !== "all") {
+        return { category, artist: "", role: "" };
       }
-      return { ...f, category: nextCat };
+      return { ...f, category: "all" };
     });
   }, []);
 
-  const cycleArtistFilter = useCallback(() => {
+  const selectArtist = useCallback((artist: string) => {
     setProducedWorksFilters((f) => {
-      const nextArtist = cycleThroughOrdered(f.artist, artistOptions);
-      if (nextArtist !== "") {
-        return { category: "all", artist: nextArtist, role: "" };
+      if (artist !== "") {
+        return { category: "all", artist, role: "" };
       }
-      return { ...f, artist: nextArtist };
+      return { ...f, artist: "" };
     });
-  }, [artistOptions]);
+  }, []);
 
-  const cycleRoleFilter = useCallback(() => {
+  const selectRole = useCallback((role: string) => {
     setProducedWorksFilters((f) => {
-      const nextRole = cycleThroughOrdered(f.role, roleOptions);
-      if (nextRole !== "") {
-        return { category: "all", artist: "", role: nextRole };
+      if (role !== "") {
+        return { category: "all", artist: "", role };
       }
-      return { ...f, role: nextRole };
+      return { ...f, role: "" };
     });
-  }, [roleOptions]);
+  }, []);
 
   const displayedWorks = useMemo(() => {
     const filtered = initialProducedWorks.filter((w) => {
@@ -335,7 +453,10 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
       ) {
         return false;
       }
-      if (roleFilter && !splitRoleTokens(w.role).includes(roleFilter)) {
+      if (
+        roleFilter &&
+        !roleFieldMatchesFixedFilter(w.role, roleFilter)
+      ) {
         return false;
       }
       if (
@@ -380,6 +501,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
     <div className="flex min-h-full flex-col flex-1 px-[10px] py-[15px] md:p-[17px]">
       <Header />
 
+      <div className="page-main-bottom-spacer">
       <section className="text-[14px] leading-[1.1] md:text-[15px]">
         <div className="flex flex-row items-start gap-x-[10px] md:gap-x-[17px] mt-[30px] md:mt-[0px]">
           <div className="flex-4 md:flex-5 space-y-[15px] md:space-y-[34px]">
@@ -395,18 +517,18 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
 
           <div className="flex-5 md:flex-4">
             <div className="flex flex-col gap-y-[30px] md:gap-y-[34px] md:flex-row md:items-start md:gap-x-[17px]">
-              <div className="flex-1 md:h-[159px] md:w-[284px] md:flex-none">
+              <div className="relative w-full min-w-0 flex-1 aspect-[284/159] overflow-hidden">
                 <Image
                   src="/images/about-hero.webp"
                   alt=""
-                  width={284}
-                  height={159}
-                  className="md:h-full w-full w-object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 767px) 100vw, 50vw"
                   priority
                 />
               </div>
 
-              <div className="flex-1 space-y-[30px] md:space-y-[34px] md:flex-[2]">
+              <div className="w-full min-w-0 flex-1 space-y-[30px] md:space-y-[34px]">
                 <div>
                   <p>
                     hrcは世田谷・羽根木を中心に活動する音楽レーベルです。HIP
@@ -414,7 +536,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
                   </p>
                 </div>
 
-                <div className="space-y-[15px] md:space-y-[17px]">
+                <div className="">
                   <div className="flex items-start gap-x-[10px] md:gap-x-[17px]">
                     <p className="w-[80px] shrink-0">Member</p>
                     <p className="flex-1">
@@ -499,63 +621,91 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
       </section>
 
       <section className="mt-[60px] md:mt-[68px] text-[15px] font-normal leading-[1.1] antialiased max-md:text-[14px]">
-        <div className="layout-grid">
-          <div className="col-start-3 md:[grid-row:span_2] whitespace-nowrap">
-            <p>(produced works)</p>
+        {/* モバイル：comps どおり (Clients)×ロール左寄せ、(Categories)×種別右寄せの2列のみ */}
+        <div className="md:hidden">
+          <div className="mt-[15px] grid grid-cols-2 gap-x-[10px] min-w-0">
+            <div className="min-w-0 text-left">
+              <p>(Clients)</p>
+              <ProducedWorksFixedRoleCategoryFilter
+                value={roleFilter}
+                onChange={selectRole}
+                justifyClassName="justify-start"
+                compact
+              />
+            </div>
+            <div className="min-w-0 flex flex-col items-end text-right">
+              <p>(Categories)</p>
+              <ProducedWorksSlashFilterRow
+                ariaLabel="プロジェクト種別で絞り込み"
+                value={categoryFilter}
+                options={categorySlashOptions}
+                onChange={selectCategory}
+                justifyClassName="justify-end"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="layout-grid mt-[15px] md:mt-[17px] whitespace-normal">
-          <div className="col-span-2 md:col-span-5 [grid-row:span_1] min-w-0 text-left">
-            <button
-              type="button"
-              className={`${sortFieldBtnBaseClass} text-left`}
-              aria-label="タイトル: ソートなし・昇順・降順を切り替え"
-              aria-pressed={titleSort !== null}
-              onClick={cycleTitleSort}
-            >
-              <span>AtoZ</span>
-              <ProducedWorksSortTabPair sort={titleSort} />
-            </button>
-          </div>
-          <div className="col-span-7 md:col-span-5 [grid-row:span_1] min-w-0 text-right">
-            <ProducedWorksCategoryCycleFilter
-              id={categoryCycleFilterId}
-              align="end"
-              value={categoryFilter}
-              onCycle={cycleCategoryFilter}
-              ariaLabelBase="プロジェクト種別で絞り込み"
-            />
-          </div>
-          <div className="col-span-3 md:col-span-3 [grid-row:span_1] min-w-0 text-left">
-            <ProducedWorksCycleFilterRow
-              id={artistCycleFilterId}
-              align="start"
-              displayLabel={artistFilter === "" ? "All" : artistFilter}
-              onCycle={cycleArtistFilter}
-              ariaLabelBase="アーティストで絞り込み"
-            />
-          </div>
-          <div className="col-span-4 md:col-span-3 [grid-row:span_1] min-w-0 text-left md:text-right">
-            <ProducedWorksCycleFilterRow
-              id={roleCycleFilterId}
-              align="startMdEnd"
-              displayLabel={roleFilter === "" ? "All" : roleFilter}
-              onCycle={cycleRoleFilter}
-              ariaLabelBase="ロールで絞り込み"
-            />
-          </div>
-          <div className="col-span-2 col-start-8 md:col-span-2 md:col-start-17 [grid-row:span_1] min-w-0 text-right">
-            <button
-              type="button"
-              className={`${sortFieldBtnBaseClass} w-full min-w-0 justify-end text-right`}
-              aria-label="日付: ソートなし・昇順・降順を切り替え"
-              aria-pressed={dateSort !== null}
-              onClick={cycleDateSort}
-            >
-              <span>Newest</span>
-              <ProducedWorksSortTabPair sort={dateSort} />
-            </button>
+        <div className="max-md:hidden">
+          <div className="layout-grid mt-[15px] md:mt-[17px] gap-y-[21px] md:gap-y-0">
+            <div className="col-span-9 md:col-span-5 min-w-0 text-left">
+              <p>(produced works)</p>
+              <button
+                type="button"
+                className={`${sortFieldBtnBaseClass} flex-row items-center text-left`}
+                aria-label="タイトル: ソートなし・昇順・降順を切り替え"
+                aria-pressed={titleSort !== null}
+                onClick={cycleTitleSort}
+              >
+                <ProducedWorksSortTabPair sort={titleSort} />
+                <span>AtoZ</span>
+              </button>
+            </div>
+            <div className="col-span-9 md:col-span-5 min-w-0 flex flex-col items-end text-right">
+              <p>(Clients)</p>
+              <ProducedWorksSlashFilterRow
+                ariaLabel="プロジェクト種別で絞り込み"
+                value={categoryFilter}
+                options={categorySlashOptions}
+                onChange={selectCategory}
+                justifyClassName="justify-end"
+                mdGroupedKeys={[
+                  ["all", "commercial-projects"],
+                  ["label-releases", "indie-projects"],
+                ]}
+              />
+            </div>
+            <div className="col-span-9 md:col-span-3 min-w-0 text-left">
+              <p>(Sound Engineer)</p>
+              <ProducedWorksSlashFilterRow
+                ariaLabel="アーティストで絞り込み"
+                value={artistFilter}
+                options={artistSlashOptions}
+                onChange={selectArtist}
+                justifyClassName="justify-start"
+              />
+            </div>
+            <div className="col-span-9 md:col-span-3 min-w-0 text-left md:text-right">
+              <p>(Categories)</p>
+              <ProducedWorksFixedRoleCategoryFilter
+                value={roleFilter}
+                onChange={selectRole}
+                justifyClassName="justify-start md:justify-end"
+              />
+            </div>
+            <div className="col-span-9 md:col-span-2 min-w-0 flex flex-col items-end text-right">
+              <p>(Dates)</p>
+              <button
+                type="button"
+                className={`${sortFieldBtnBaseClass} flex-row items-center justify-end text-right`}
+                aria-label="日付: ソートなし・昇順・降順を切り替え"
+                aria-pressed={dateSort !== null}
+                onClick={cycleDateSort}
+              >
+                <ProducedWorksSortTabPair sort={dateSort} />
+                <span>Newest</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -645,6 +795,7 @@ export function AboutPageClient({ initialProducedWorks }: Props) {
           })}
         </div>
       </section>
+      </div>
 
       <div className="mt-auto">
         <Footer />

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ScrambleText } from "./ScrambleText";
 
 type TopFooterProps = {
@@ -22,68 +23,77 @@ export const TopFooter = ({
   bootComplete = true,
   onBootSequenceEnd,
 }: TopFooterProps) => {
+  const pathname = usePathname() ?? "";
+
   return (
     <footer>
       <div className="layout-grid items-start whitespace-nowrap">
-        {/* ロゴ */}
-        <div className="col-start-1 flex h-[17px] w-[46px] items-start md:col-span-17 md:[grid-row:span_3]">
-          <Link href="/">
+        <div className="grid-full flex justify-end">
+          <div className="relative h-[17px] w-[17px] shrink-0">
             <Image
-              src="/logo-main.svg"
+              src="/icon/icon-switch-off.svg"
+              alt=""
+              width={17}
+              height={17}
+              className={`absolute inset-0 h-full w-full object-contain ${
+                bootComplete
+                  ? "opacity-0"
+                  : "opacity-100 switch-off-blink"
+              }`}
+              aria-hidden="true"
+              onAnimationEnd={(e) => {
+                if (bootComplete) return;
+                if (!onBootSequenceEnd) return;
+                if (!isSwitchOffBlinkAnimation(e.animationName)) return;
+                onBootSequenceEnd();
+              }}
+            />
+            <Image
+              src="/icon/icon-switch-on.svg"
+              alt=""
+              width={17}
+              height={17}
+              className={`absolute inset-0 h-full w-full object-contain ${
+                bootComplete ? "opacity-100" : "opacity-0"
+              }`}
+              aria-hidden="true"
+            />
+          </div>
+        </div>
+
+        {/* スイッチとナビのあいだ: モバイル 1 トラック / md+ は 2 トラック */}
+        <div
+          className="grid-full min-h-[var(--grid-row)] pointer-events-none"
+          aria-hidden
+        />
+        <div
+          className="grid-full hidden min-h-[var(--grid-row)] pointer-events-none md:block"
+          aria-hidden
+        />
+
+        {/* Header と同一の列・構成（モバイル row 3 / md+ row 4） */}
+        <div className="flex h-[46px] w-[46px] items-start row-start-3 md:row-start-4 md:row-span-4">
+          <Link href="/" className="hover:opacity-70 transition-opacity">
+            <Image
+              src="/icon/hrc_logo.svg"
               alt="HRC logo"
               width={46}
-              height={17}
-              className="h-full w-full object-contain"
+              height={46}
               priority
+              className="h-full w-full object-contain"
             />
           </Link>
         </div>
-        <div className="relative col-start-9 h-[24px] w-[24px] justify-self-end md:col-span-1 md:[grid-row:span_3]">
-          <Image
-            src="/icon/icon-switch-off.svg"
-            alt=""
-            width={24}
-            height={24}
-            className={`absolute inset-0 h-full w-full object-contain ${
-              bootComplete
-                ? "opacity-0"
-                : "opacity-100 switch-off-blink"
-            }`}
-            aria-hidden="true"
-            onAnimationEnd={(e) => {
-              if (bootComplete) return;
-              if (!onBootSequenceEnd) return;
-              if (!isSwitchOffBlinkAnimation(e.animationName)) return;
-              onBootSequenceEnd();
-            }}
-          />
-          <Image
-            src="/icon/icon-switch-on.svg"
-            alt=""
-            width={24}
-            height={24}
-            className={`absolute inset-0 h-full w-full object-contain ${
-              bootComplete ? "opacity-100" : "opacity-0"
-            }`}
-            aria-hidden="true"
-          />
-        </div>
 
-        <div className="col-start-1 md:col-span-13 md:[grid-row:span_7]">
-          <p>Music Label</p>
-          <p>Based in Tokyo</p>
-        </div>
-
-        {/* メインナビ */}
-        <div className="col-start-5 md:col-span-4 flex items-start md:[grid-row:span_7]">
-          <div className="text-left">
+        <div className="col-start-5 md:col-start-14 flex items-start row-start-3 md:row-start-4 md:row-span-4">
+          <div className="text-left whitespace-nowrap">
             <Link href="/works">
-              <p>
+              <p className={pathname.startsWith("/works") ? "line-through" : ""}>
                 <ScrambleText text="Works" mode="lap" speedMs={40} durationMs={400} />
               </p>
             </Link>
             <Link href="/office_rec">
-              <p>
+              <p className={pathname.startsWith("/office_rec") ? "line-through" : ""}>
                 <ScrambleText
                   text="Office Rec"
                   mode="lap"
@@ -93,7 +103,7 @@ export const TopFooter = ({
               </p>
             </Link>
             <Link href="/graphic_design">
-              <p>
+              <p className={pathname.startsWith("/graphic_design") ? "line-through" : ""}>
                 <ScrambleText
                   text="Graphic Design"
                   mode="lap"
@@ -103,15 +113,13 @@ export const TopFooter = ({
               </p>
             </Link>
             <Link href="/about">
-              <p className="inline-flex items-center gap-1">
+              <p
+                className={`inline-flex items-center gap-1${
+                  pathname.startsWith("/about") ? " line-through" : ""
+                }`}
+              >
                 <ScrambleText
                   text="About"
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                />
-                <ScrambleText
-                  text="Us"
                   mode="lap"
                   speedMs={40}
                   durationMs={400}
@@ -121,17 +129,11 @@ export const TopFooter = ({
           </div>
         </div>
 
-        {/* サブナビ */}
-        <div className="col-start-8 md:col-span-1 flex items-start md:[grid-row:span_7]">
+        <div className="col-start-8 md:col-start-18 flex items-start row-start-3 md:row-start-4 md:row-span-4">
           <div className="text-left">
             <Link href="/contact">
-              <p>
-                <ScrambleText
-                  text="Contact"
-                  mode="lap"
-                  speedMs={40}
-                  durationMs={400}
-                />
+              <p className={pathname.startsWith("/contact") ? "line-through" : ""}>
+                <ScrambleText text="Contact" mode="lap" speedMs={40} durationMs={400} />
               </p>
             </Link>
             <a
@@ -152,8 +154,9 @@ export const TopFooter = ({
               href="https://x.com/hrc_hicard?s=21"
               target="_blank"
               rel="noopener noreferrer"
+              className="whitespace-nowrap"
             >
-              <p className="whitespace-nowrap">
+              <p>
                 <ScrambleText
                   text="Twitter (X)"
                   mode="lap"
@@ -164,8 +167,13 @@ export const TopFooter = ({
             </a>
           </div>
         </div>
+
+        {/* 下に 4 トラックぶん（モバイル・デスクトップ共通） */}
+        <div
+          className="grid-full min-h-[calc(3*var(--grid-row))] pointer-events-none"
+          aria-hidden
+        />
       </div>
     </footer>
   );
 };
-
